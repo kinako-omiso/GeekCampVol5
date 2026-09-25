@@ -130,7 +130,7 @@
 1. PCの /dev/photo-model で写真ファイルを1枚選ぶ。Maskファイルを直接入力する画面は設けない。
 2. MediaPipe Interactive Segmenterで対象物を指定し、Maskを重ねて確認する。追加・除外の指定とやり直しができる。
 3. 最大連結成分を残し、内部の穴を埋め、外周をRDP 0.2%で単純化する。輪郭の最長軸を1.0にそろえる。
-4. 輪郭をZ方向へ最長軸の25%だけ押し出す。positions / indices / normals を生成し、Babylon.jsで #dddddd の単色Materialとして360°確認する。
+4. 輪郭をZ方向へ最長軸の25%だけ押し出す。positions / indices / normals を生成し、Babylon.jsで #dddddd の単色Materialとして360°確認する。検証画面ではモデルの体積重心を回転軸にしてドラッグでモデルを回し、ホイールでモデルを拡大縮小する。カメラと光源は固定する。
 
 この段階では写真テクスチャとUVを作らない。Maskは再構成関数の内部入力および合成Maskによるテストに使う。PCとスマホの転送、geometry-wasm での形状解析、対戦画面への組み込みは後続の段階で行う。
 

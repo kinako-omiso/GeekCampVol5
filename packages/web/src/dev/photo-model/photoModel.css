@@ -33,7 +33,7 @@
 .photo-model-image-wrap { position: relative; background: #e8ebf0; border-radius: 10px; overflow: hidden; }
 .photo-model-image { width: 100%; height: auto; display: block; }
 .photo-model-overlay { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
-.photo-model-preview { display: block; width: 100%; height: 420px; border-radius: 10px; outline: none; }
+.photo-model-preview { display: block; width: 100%; height: 420px; border-radius: 10px; outline: none; cursor: grab; touch-action: none; }
 .photo-model-placeholder { min-height: 420px; display: grid; place-items: center; padding: 24px; box-sizing: border-box; text-align: center; color: #718096; background: #eef1f5; border-radius: 10px; }
 .photo-model-placeholder-dark { color: #c1c8d4; background: #151b29; }
 .photo-model-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 0; }

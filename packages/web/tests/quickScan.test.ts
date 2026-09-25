@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { getVolumeCentroid } from '../src/features/analyze/reconstruction/centroid.ts'
 import { reconstructQuickScan } from '../src/features/analyze/reconstruction/quickScan.ts'
 import type { SilhouetteMask } from '../src/features/analyze/reconstruction/types.ts'
 
@@ -34,8 +35,10 @@ function inspectMesh(mask: SilhouetteMask) {
 
   // 前後面と側面が幾何学的に閉じていることを辺の共有数で確かめる。
   const edges = new Map<string, number>()
+  const edgeDirections = new Map<string, number>()
   const keyOf = (vertex: number) => Array.from(mesh.positions.slice(vertex * 3, vertex * 3 + 3), (value) => value.toFixed(6)).join(',')
   let frontArea = 0
+  let signedVolume = 0
   for (let index = 0; index < mesh.indices.length; index += 3) {
     const ids = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]]
     const [a, b, c] = ids.map((id) => id * 3)
@@ -47,24 +50,53 @@ function inspectMesh(mask: SilhouetteMask) {
     const vz = mesh.positions[c + 2] - mesh.positions[a + 2]
     assert.ok(Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx) > 1e-8)
     if (ids.every((id) => mesh.positions[id * 3 + 2] > 0)) frontArea += (ux * vy - uy * vx) / 2
+    signedVolume += (
+      mesh.positions[a] * (mesh.positions[b + 1] * mesh.positions[c + 2] - mesh.positions[b + 2] * mesh.positions[c + 1])
+      + mesh.positions[a + 1] * (mesh.positions[b + 2] * mesh.positions[c] - mesh.positions[b] * mesh.positions[c + 2])
+      + mesh.positions[a + 2] * (mesh.positions[b] * mesh.positions[c + 1] - mesh.positions[b + 1] * mesh.positions[c])
+    ) / 6
     for (let edge = 0; edge < 3; edge += 1) {
-      const ends = [keyOf(ids[edge]), keyOf(ids[(edge + 1) % 3])].sort().join('|')
+      const start = keyOf(ids[edge])
+      const end = keyOf(ids[(edge + 1) % 3])
+      const ends = [start, end].sort().join('|')
       edges.set(ends, (edges.get(ends) ?? 0) + 1)
+      edgeDirections.set(ends, (edgeDirections.get(ends) ?? 0) + (start < end ? 1 : -1))
     }
   }
   assert.ok([...edges.values()].every((count) => count === 2))
-  return { mesh, frontArea }
+  assert.ok([...edgeDirections.values()].every((direction) => direction === 0))
+  assert.ok(signedVolume > 0)
+  return { mesh, frontArea, signedVolume }
 }
 
 test('矩形の寸法と閉じた押し出し面', () => {
-  const { frontArea } = inspectMesh(createMask(32, 32, (x, y) => x >= 5 && x < 25 && y >= 7 && y < 21))
+  const { mesh, frontArea, signedVolume } = inspectMesh(createMask(32, 32, (x, y) => x >= 5 && x < 25 && y >= 7 && y < 21))
   assert.ok(Math.abs(frontArea - 0.7) < 1e-5)
+  assert.ok(Math.abs(signedVolume - 0.7 * 0.25) < 1e-5)
+  const center = getVolumeCentroid(mesh)
+  assert.ok(center)
+  assert.ok(Math.abs(center.x) < 1e-5)
+  assert.ok(Math.abs(center.y - 0.35) < 1e-5)
+  assert.ok(Math.abs(center.z) < 1e-5)
+  const horizontalSides = new Set<number>()
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const ids = Array.from(mesh.indices.slice(index, index + 3))
+    const ys = ids.map((id) => mesh.positions[id * 3 + 1])
+    if (ys.every((y) => y === ys[0])) horizontalSides.add(ys[0])
+  }
+  const sideHeights = [...horizontalSides].sort((a, b) => a - b)
+  assert.equal(sideHeights.length, 2)
+  assert.ok(Math.abs(sideHeights[0]) < 1e-5)
+  assert.ok(Math.abs(sideHeights[1] - 0.7) < 1e-5)
 })
 
 test('凹形状を面分割し、同じ入力から同じ結果を得る', () => {
   const input = createMask(32, 32, (x, y) => (x >= 5 && x < 11 && y >= 5 && y < 25) || (x >= 5 && x < 24 && y >= 19 && y < 25))
   const { mesh, frontArea } = inspectMesh(input)
   assert.ok(Math.abs(frontArea - 198 / 400) < 1e-5)
+  const center = getVolumeCentroid(mesh)
+  assert.ok(center)
+  assert.ok(center.y < 0.5)
   assert.deepEqual(mesh.positions, reconstructQuickScan(input).positions)
   assert.deepEqual(mesh.indices, reconstructQuickScan(input).indices)
 })

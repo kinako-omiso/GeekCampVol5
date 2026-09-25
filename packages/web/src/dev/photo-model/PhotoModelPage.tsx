@@ -171,7 +171,7 @@ export default function PhotoModelPage() {
     setError('')
     try {
       setOutput(reconstructQuickScanWithMetrics(mask))
-      setStatus('モデルを生成しました。ドラッグで回転、ホイールで拡大できます。')
+      setStatus('モデルを生成しました。ドラッグでモデルを回転、ホイールでモデルを拡大できます。')
     } catch (cause) {
       setOutput(null)
       setError(cause instanceof Error ? cause.message : '3Dモデルを生成できませんでした。')
