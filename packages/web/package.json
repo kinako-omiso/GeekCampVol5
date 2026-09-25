@@ -6,10 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint src",
+    "test:quick-scan": "node --experimental-strip-types --test tests/quickScan.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@babylonjs/core": "^9.28.0",
+    "@mediapipe/tasks-vision": "1.0.1",
+    "earcut": "^3.2.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
