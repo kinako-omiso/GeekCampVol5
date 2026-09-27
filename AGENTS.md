@@ -39,6 +39,7 @@ packages/
    │  ├─ result/        # PC: 結果
    │  ├─ join/          # スマホ: 接続・センサー権限・基準姿勢
    │  ├─ capture/       # スマホ: 撮影・範囲指定・送信（ui/ / pipeline/）
+   │  ├─ orient/        # スマホ: 向き調整（傾けで回転・決定）
    │  └─ pad/           # スマホ: 横持ちコントローラー
    ├─ lib/              # peer / sensor / babylon
    ├─ components/       # 2画面以上で使うUIだけ
