@@ -3,7 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { reconstructQuickScanWithMetrics } from '../../features/analyze/reconstruction/quickScan'
 import type { QuickScanOutput, SilhouetteMask } from '../../features/analyze/reconstruction/types'
 import { loadPhoto, segmentPhoto, setPhotoForSegmentation } from '../../features/capture/pipeline/photoSegmenter'
-import type { SelectionStroke } from '../../features/capture/pipeline/photoSegmenter'
+import type { PhotoPreparationTimings, SegmentationTimings, SelectionStroke } from '../../features/capture/pipeline/photoSegmenter'
 import './photoModel.css'
 
 function Preview({ output, onError }: { output: QuickScanOutput; onError: (message: string) => void }) {
@@ -29,36 +29,54 @@ function Preview({ output, onError }: { output: QuickScanOutput; onError: (messa
   return <canvas ref={canvasRef} className="photo-model-preview" aria-label="3Dモデルのプレビュー" />
 }
 
+type PreparationMetrics = PhotoPreparationTimings & { imageLoadMs: number; totalMs: number }
+type MaskMetrics = SegmentationTimings & {
+  rasterMs: number
+  overlayDrawMs: number
+  visibleMs: number
+  maskWidth: number
+  maskHeight: number
+}
+
+type PendingMaskMetrics = {
+  mask: SilhouetteMask
+  startedAt: number
+  operation: number
+  timings: Omit<MaskMetrics, 'overlayDrawMs' | 'visibleMs'>
+}
+
+function createMaskOverlay(mask: SilhouetteMask): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = mask.width
+  canvas.height = mask.height
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Maskを表示するCanvasを作成できませんでした。')
+  const pixels = context.createImageData(mask.width, mask.height)
+  for (let index = 0; index < mask.data.length; index += 1) {
+    if (mask.data[index] === 0) continue
+    pixels.data[index * 4] = 53
+    pixels.data[index * 4 + 1] = 211
+    pixels.data[index * 4 + 2] = 196
+    pixels.data[index * 4 + 3] = 105
+  }
+  context.putImageData(pixels, 0, 0)
+  return canvas
+}
+
 function drawOverlay(
   canvas: HTMLCanvasElement,
   photo: HTMLCanvasElement,
-  mask: SilhouetteMask | null,
+  maskCanvas: HTMLCanvasElement | null,
   strokes: ReadonlyArray<SelectionStroke>,
   draft: SelectionStroke | null,
 ) {
-  canvas.width = photo.width
-  canvas.height = photo.height
+  if (canvas.width !== photo.width) canvas.width = photo.width
+  if (canvas.height !== photo.height) canvas.height = photo.height
   const context = canvas.getContext('2d')
   if (!context) return
+  context.clearRect(0, 0, canvas.width, canvas.height)
 
-  if (mask) {
-    const maskCanvas = document.createElement('canvas')
-    maskCanvas.width = mask.width
-    maskCanvas.height = mask.height
-    const maskContext = maskCanvas.getContext('2d')
-    if (maskContext) {
-      const pixels = maskContext.createImageData(mask.width, mask.height)
-      for (let index = 0; index < mask.data.length; index += 1) {
-        if (mask.data[index] === 0) continue
-        pixels.data[index * 4] = 53
-        pixels.data[index * 4 + 1] = 211
-        pixels.data[index * 4 + 2] = 196
-        pixels.data[index * 4 + 3] = 105
-      }
-      maskContext.putImageData(pixels, 0, 0)
-      context.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height)
-    }
-  }
+  if (maskCanvas) context.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height)
 
   for (const stroke of [...strokes, ...(draft ? [draft] : [])]) {
     if (stroke.points.length === 0) continue
@@ -88,6 +106,12 @@ export default function PhotoModelPage() {
   const photoRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
   const draftRef = useRef<SelectionStroke | null>(null)
+  const maskOverlayRef = useRef<{ mask: SilhouetteMask; canvas: HTMLCanvasElement } | null>(null)
+  const pendingMaskMetricsRef = useRef<PendingMaskMetrics | null>(null)
+  const operationRef = useRef(0)
+  const segmentationMaxSide = new URLSearchParams(window.location.search).get('maskSize') === '768' ? 768 : 1024
+  const [preparationMetrics, setPreparationMetrics] = useState<PreparationMetrics | null>(null)
+  const [maskMetrics, setMaskMetrics] = useState<MaskMetrics | null>(null)
   const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null)
   const [mask, setMask] = useState<SilhouetteMask | null>(null)
   const [strokes, setStrokes] = useState<SelectionStroke[]>([])
@@ -98,28 +122,57 @@ export default function PhotoModelPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (photo && photoRef.current) {
-      photoRef.current.width = photo.width
-      photoRef.current.height = photo.height
-      photoRef.current.getContext('2d')?.drawImage(photo, 0, 0)
-    }
-    if (photo && overlayRef.current) drawOverlay(overlayRef.current, photo, mask, strokes, draftRef.current)
+    if (!photo || !photoRef.current) return
+    photoRef.current.width = photo.width
+    photoRef.current.height = photo.height
+    photoRef.current.getContext('2d')?.drawImage(photo, 0, 0)
+  }, [photo])
+
+  useEffect(() => {
+    if (!photo || !overlayRef.current) return
+    const drawStart = performance.now()
+    const maskCanvas = maskOverlayRef.current?.mask === mask ? maskOverlayRef.current.canvas : null
+    drawOverlay(overlayRef.current, photo, maskCanvas, strokes, draftRef.current)
+    const pending = pendingMaskMetricsRef.current
+    if (pending?.mask !== mask) return
+    pendingMaskMetricsRef.current = null
+    const overlayDrawMs = performance.now() - drawStart
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (pending.operation !== operationRef.current) return
+        setMaskMetrics({
+          ...pending.timings,
+          overlayDrawMs,
+          visibleMs: performance.now() - pending.startedAt,
+        })
+      }, 0)
+    })
   }, [photo, mask, strokes])
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return
+    const startedAt = performance.now()
+    operationRef.current += 1
+    maskOverlayRef.current = null
+    pendingMaskMetricsRef.current = null
+    draftRef.current = null
+    setPreparationMetrics(null)
+    setMaskMetrics(null)
     setBusy(true)
     setError('')
     setOutput(null)
     setMask(null)
     setStrokes([])
+    setMode('add')
     setPhoto(null)
     setStatus('写真を読み込んでいます…')
     try {
       const canvas = await loadPhoto(file)
+      const imageLoadMs = performance.now() - startedAt
       setPhoto(canvas)
       setStatus('領域分割モデルを読み込んでいます…')
-      await setPhotoForSegmentation(canvas)
+      const timings = await setPhotoForSegmentation(canvas, segmentationMaxSide)
+      setPreparationMetrics({ ...timings, imageLoadMs, totalMs: performance.now() - startedAt })
       setStatus('対象物の上をクリックまたはドラッグしてください。')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '写真の準備に失敗しました。')
@@ -138,26 +191,50 @@ export default function PhotoModelPage() {
   }
 
   const showDraft = () => {
-    if (photo && overlayRef.current) drawOverlay(overlayRef.current, photo, mask, strokes, draftRef.current)
+    if (!photo || !overlayRef.current) return
+    const maskCanvas = maskOverlayRef.current?.mask === mask ? maskOverlayRef.current.canvas : null
+    drawOverlay(overlayRef.current, photo, maskCanvas, strokes, draftRef.current)
   }
 
   const finishStroke = async () => {
     const draft = draftRef.current
     draftRef.current = null
     if (!draft || !photo) return
+    const startedAt = performance.now()
+    const operation = ++operationRef.current
     const next = [...strokes, draft]
     setStrokes(next)
     setBusy(true)
     setError('')
     setOutput(null)
+    setMaskMetrics(null)
     setStatus('対象物を切り出しています…')
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))
     try {
-      const nextMask = await segmentPhoto(next)
+      const timings: SegmentationTimings = { segmentMs: 0, conversionMs: 0 }
+      const nextMask = await segmentPhoto(next, (value) => { Object.assign(timings, value) })
       if (!nextMask.data.some((value) => value !== 0)) throw new Error('対象物が見つかりません。指定をやり直してください。')
+      const rasterStart = performance.now()
+      const maskCanvas = createMaskOverlay(nextMask)
+      const rasterMs = performance.now() - rasterStart
+      maskOverlayRef.current = { mask: nextMask, canvas: maskCanvas }
+      pendingMaskMetricsRef.current = {
+        mask: nextMask,
+        startedAt,
+        operation,
+        timings: {
+          segmentMs: timings.segmentMs,
+          conversionMs: timings.conversionMs,
+          rasterMs,
+          maskWidth: nextMask.width,
+          maskHeight: nextMask.height,
+        },
+      }
       setMask(nextMask)
       setStatus('Maskを確認し、必要なら追加・除外してください。')
     } catch (cause) {
+      maskOverlayRef.current = null
+      pendingMaskMetricsRef.current = null
       setMask(null)
       setError(cause instanceof Error ? cause.message : '領域分割に失敗しました。')
       setStatus('指定をやり直してください。')
@@ -179,7 +256,12 @@ export default function PhotoModelPage() {
   }
 
   const reset = () => {
+    operationRef.current += 1
+    maskOverlayRef.current = null
+    pendingMaskMetricsRef.current = null
+    setMaskMetrics(null)
     setStrokes([])
+    setMode('add')
     setMask(null)
     setOutput(null)
     setError('')
@@ -216,6 +298,8 @@ export default function PhotoModelPage() {
       </section>
 
       <p className="photo-model-status" role="status">{busy ? '処理中 · ' : ''}{status}</p>
+      {preparationMetrics && <p className="photo-model-timings">写真準備 {preparationMetrics.totalMs.toFixed(0)} ms（画像 {preparationMetrics.imageLoadMs.toFixed(0)} / モデル {preparationMetrics.modelLoadMs.toFixed(0)} / 縮小 {preparationMetrics.resizeMs.toFixed(0)} / setImage {preparationMetrics.setImageMs.toFixed(0)}）、分割入力 {preparationMetrics.inputWidth}×{preparationMetrics.inputHeight}px</p>}
+      {maskMetrics && <p className="photo-model-timings">Mask表示 {maskMetrics.visibleMs.toFixed(0)} ms（segment {maskMetrics.segmentMs.toFixed(0)} / 変換 {maskMetrics.conversionMs.toFixed(0)} / 色付け {maskMetrics.rasterMs.toFixed(0)} / 重ね描き {maskMetrics.overlayDrawMs.toFixed(0)}）、Mask {maskMetrics.maskWidth}×{maskMetrics.maskHeight}px</p>}
       {error && <p className="photo-model-error" role="alert">{error}</p>}
 
       <div className="photo-model-columns">

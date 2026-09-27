@@ -7,6 +7,19 @@ export type SelectionStroke = {
   points: ReadonlyArray<{ x: number; y: number }>
 }
 
+export type PhotoPreparationTimings = {
+  modelLoadMs: number
+  resizeMs: number
+  setImageMs: number
+  inputWidth: number
+  inputHeight: number
+}
+
+export type SegmentationTimings = {
+  segmentMs: number
+  conversionMs: number
+}
+
 let segmenterPromise: Promise<InteractiveSegmenter> | null = null
 
 export async function loadPhoto(file: File): Promise<HTMLCanvasElement> {
@@ -49,25 +62,56 @@ export async function loadPhotoSegmenter(): Promise<InteractiveSegmenter> {
   return segmenterPromise
 }
 
-export async function setPhotoForSegmentation(canvas: HTMLCanvasElement): Promise<void> {
+export async function setPhotoForSegmentation(canvas: HTMLCanvasElement, maxSide = 1024): Promise<PhotoPreparationTimings> {
+  const modelStart = performance.now()
   const segmenter = await loadPhotoSegmenter()
-  segmenter.setImage(canvas)
+  const modelLoadMs = performance.now() - modelStart
+
+  const resizeStart = performance.now()
+  const scale = Math.min(1, maxSide / Math.max(canvas.width, canvas.height))
+  let input = canvas
+  if (scale < 1) {
+    input = document.createElement('canvas')
+    input.width = Math.max(1, Math.round(canvas.width * scale))
+    input.height = Math.max(1, Math.round(canvas.height * scale))
+    const context = input.getContext('2d', { alpha: false })
+    if (!context) throw new Error('領域分割用のCanvasを作成できませんでした。')
+    context.drawImage(canvas, 0, 0, input.width, input.height)
+  }
+  const resizeMs = performance.now() - resizeStart
+
+  const setImageStart = performance.now()
+  segmenter.setImage(input)
+  return {
+    modelLoadMs,
+    resizeMs,
+    setImageMs: performance.now() - setImageStart,
+    inputWidth: input.width,
+    inputHeight: input.height,
+  }
 }
 
-export async function segmentPhoto(strokes: ReadonlyArray<SelectionStroke>): Promise<SilhouetteMask> {
+export async function segmentPhoto(
+  strokes: ReadonlyArray<SelectionStroke>,
+  onTiming?: (timings: SegmentationTimings) => void,
+): Promise<SilhouetteMask> {
   if (strokes.length === 0) throw new Error('写真上の対象物を指定してください。')
   const segmenter = await loadPhotoSegmenter()
+  const segmentStart = performance.now()
   const mask = segmenter.segment(strokes.map((stroke) => ({
     brushMode: (stroke.mode === 'add' ? 1 : 2) as BrushMode,
     point: stroke.points,
     isCompleted: true,
   })))
+  const segmentMs = performance.now() - segmentStart
   try {
+    const conversionStart = performance.now()
     const values = mask.getAsFloat32Array()
     const data = new Uint8Array(values.length)
     for (let index = 0; index < values.length; index += 1) {
       data[index] = values[index] >= 0.5 ? 1 : 0
     }
+    onTiming?.({ segmentMs, conversionMs: performance.now() - conversionStart })
     return { width: mask.width, height: mask.height, data }
   } finally {
     mask.close()

@@ -24,6 +24,7 @@
 .photo-model-mode button.selected { background: #fff; box-shadow: 0 1px 4px #bcc3d0; }
 .photo-model-toolbar .photo-model-primary { color: #fff; background: #315fc2; border-color: #315fc2; }
 .photo-model-status { margin-bottom: 12px; color: #48556b; }
+.photo-model-timings { margin: 0 0 6px; color: #687387; font-size: 12px; overflow-wrap: anywhere; }
 .photo-model-error { margin-bottom: 12px; padding: 10px 14px; border-radius: 9px; color: #9d2929; background: #fff0ee; }
 .photo-model-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .photo-model-panel { min-width: 0; padding: 16px; border: 1px solid #dfe3ea; border-radius: 15px; background: #fff; box-shadow: 0 8px 24px #1c2b440d; }
