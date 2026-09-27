@@ -1,3 +1,31 @@
+## Vercelへのデプロイ（Issue #2）
+
+このリポジトリは npm workspaces を使います。依存関係はリポジトリルートの
+`package-lock.json` で管理し、追加・更新時はルートで `npm install` を実行します。
+
+Vercelのプロジェクト設定は次のとおりです。
+
+- Framework Preset: `Vite`
+- Root Directory: `packages/web`
+- 「Include source files outside of the Root Directory in the Build Step」を有効化
+  （ルートのロックファイルと共有パッケージ `packages/protocol` が必要）
+
+`vercel.json` でインストール・ビルド・出力先を指定しています。
+インストールはリポジトリルートで `npm ci`、ビルドは `packages/web` で
+`npm run build` を実行し、`dist` を配信します。
+
+ローカルではリポジトリルートで次を実行すると確認できます。
+
+```sh
+npm ci
+npm run lint
+npm run build
+```
+
+ビルドには `tsc -b` による型チェックも含まれます。
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
