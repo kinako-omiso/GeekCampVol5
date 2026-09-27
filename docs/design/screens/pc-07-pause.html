@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>切断・一時停止 — Scannee's Summit デザイン見本</title>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&amp;family=M+PLUS+Rounded+1c:wght@500;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#8FDBFF}
+.mp{font-family:'Mochiy Pop One',sans-serif;line-height:1.05}
+.ol-s{-webkit-text-stroke:6px #231A3D;paint-order:stroke fill}
+@keyframes zzz{0%{transform:translate(0,0) scale(.6);opacity:0}20%{opacity:1}100%{transform:translate(30px,-70px) scale(1.2);opacity:0}}
+.zzz{animation:zzz 2.4s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,40,79,.7)}100%{box-shadow:0 0 0 28px rgba(232,40,79,0)}}
+.pulse{animation:pulse 1.3s ease-out infinite}
+@keyframes drop{0%{transform:translateY(-40px) scale(.9);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+.drop{animation:drop .45s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes wob{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.wob{animation:wob 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+.d1{animation:blink 1.2s infinite}.d2{animation:blink 1.2s .2s infinite}.d3{animation:blink 1.2s .4s infinite}
+</style>
+<style>
+/* 見本ページの枠(デザインの一部ではない) */
+body{margin:0!important;padding:32px 40px 60px!important;background:#E6E2EE!important;font-family:'M PLUS Rounded 1c',sans-serif;color:#231A3D}
+.ss-head{max-width:1280px;margin:0 0 28px}
+.ss-head h1{font:900 28px/1.3 'M PLUS Rounded 1c',sans-serif;margin:0 0 6px}
+.ss-head p{font:800 15px/1.7 'M PLUS Rounded 1c',sans-serif;margin:0;color:#4A4163}
+.ss-head a{color:#1B3FA8}
+.ss-meta{display:inline-block;margin:0 8px 8px 0;padding:2px 10px;border-radius:999px;background:#fff;border:2px solid #231A3D;font:900 13px/1.6 'M PLUS Rounded 1c',sans-serif}
+.ss-variant{margin:0 0 40px}
+.ss-variant h2{font:900 17px/1.4 'M PLUS Rounded 1c',sans-serif;margin:0 0 10px}
+.ss-frame{position:relative;overflow:hidden;box-shadow:0 0 0 3px #231A3D,0 10px 0 3px rgba(35,26,61,.25)}
+</style>
+</head>
+<body>
+<header class="ss-head">
+<p><a href="index.html">← 画面一覧</a></p>
+<h1>切断・一時停止</h1>
+<span class="ss-meta">ルート: /host</span><span class="ss-meta">基準サイズ: 1280×720</span><span class="ss-meta">元データ: source/Pause.dc.html</span>
+<p>ゲームを止めて暗くし、2人とも寝顔(すやすや)。切れた側の再接続QRを出す。つながったら 3・2・1 で再開。</p>
+</header>
+<section class="ss-variant">
+<h2>2Pが切断</h2>
+<div class="ss-frame" style="width:1280px;height:720px">
+<div style="width:1280px;height:720px;position:relative;overflow:hidden;background:#8FDBFF;font-family:'M PLUS Rounded 1c',sans-serif;color:#231A3D">
+<svg viewBox="0 0 1280 720" width="1280" height="720" style="position:absolute;inset:0" aria-hidden="true">
+<defs>
+<path id="mugP" d="M40 40H140V154Q140 170 124 170H56Q40 170 40 154ZM140 66H158Q182 66 182 96V112Q182 142 158 142H140V124H154Q164 124 164 112V96Q164 84 154 84H140Z"/>
+<symbol id="mug" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#mugP" transform="translate(18 -14)"/><use href="#mugP" transform="translate(9 -7)"/><use href="#mugP"/></g><use href="#mugP" transform="translate(18 -14)" fill="#77819F"/><use href="#mugP" transform="translate(12 -9.3)" fill="#8D97B4"/><use href="#mugP" transform="translate(6 -4.7)" fill="#A3ACC9"/><use href="#mugP" fill="#F4F6FC" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/></symbol>
+<rect id="erB" x="16" y="78" width="170" height="72" rx="12"/>
+<rect id="erS" x="80" y="72" width="112" height="84" rx="6"/>
+<symbol id="eraser" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#erB" transform="translate(18 -16)"/><use href="#erS" transform="translate(18 -16)"/><use href="#erB"/><use href="#erS"/></g><use href="#erB" transform="translate(18 -16)" fill="#A3AABD"/><use href="#erS" transform="translate(18 -16)" fill="#646D85"/><use href="#erB" transform="translate(9 -8)" fill="#B5BCCC"/><use href="#erS" transform="translate(9 -8)" fill="#767F97"/><use href="#erB" fill="#F7F8FB" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><use href="#erS" fill="#A9B2C6" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="82" y="102" width="108" height="16" fill="#3B4257"/></symbol>
+<symbol id="eyes-shut" viewBox="0 0 80 44"><g fill="none" stroke="#231A3D" stroke-width="5" stroke-linecap="round"><path d="M8 24Q20 33 32 24"/><path d="M48 24Q60 33 72 24"/></g></symbol>
+</defs>
+<rect width="1280" height="720" fill="#8FDBFF"/>
+<path d="M0 250L120 180L230 220L350 150L470 210L600 170L740 220L870 150L1000 200L1130 160L1280 200V330H0Z" fill="#79C9EF"/>
+<path d="M-10 282Q40 242 100 264Q150 228 220 256Q280 224 350 254Q420 222 490 252Q560 222 630 250Q700 222 770 252Q840 224 910 254Q980 226 1050 256Q1120 228 1190 258Q1240 240 1292 264V730H-10Z" fill="#ffffff" stroke="#231A3D" stroke-width="5" stroke-linejoin="round"/>
+<ellipse cx="640" cy="484" rx="430" ry="270" fill="#C08F68" stroke="#231A3D" stroke-width="6"/>
+<ellipse cx="640" cy="450" rx="430" ry="270" fill="#6BD66B" stroke="#231A3D" stroke-width="6"/>
+<ellipse cx="520" cy="548" rx="94" ry="58" fill="rgba(47,107,255,.25)" stroke="#2F6BFF" stroke-width="12"/>
+<svg x="419" y="397" width="200" height="182" viewBox="0 0 220 200"><use href="#mug"/><use href="#eyes-shut" x="50" y="70" width="80" height="44"/></svg>
+<ellipse cx="780" cy="516" rx="94" ry="58" fill="rgba(232,40,79,.25)" stroke="#E8284F" stroke-width="12"/>
+<svg x="672" y="375" width="210" height="191" viewBox="0 0 220 200"><use href="#eraser"/><use href="#eyes-shut" x="18" y="92" width="62" height="34"/></svg>
+</svg>
+<div style="position:absolute;inset:0;background:rgba(35,26,61,.55)"></div>
+<div class="mp zzz" style="position:absolute;left:372px;top:446px;font-size:40px;color:#FFF8EC">Z</div>
+<div class="mp zzz" style="position:absolute;left:350px;top:470px;font-size:28px;color:#FFF8EC;animation-delay:.8s">z</div>
+<div class="mp zzz" style="position:absolute;left:900px;top:420px;font-size:40px;color:#FFF8EC;animation-delay:.4s">Z</div>
+<div class="mp zzz" style="position:absolute;left:885px;top:446px;font-size:28px;color:#FFF8EC;animation-delay:1.2s">z</div>
+
+<div style="position:absolute;left:0;right:0;top:74px;display:flex;justify-content:center">
+<div class="drop" style="position:relative;width:820px;box-sizing:border-box;padding:62px 44px 32px;background:#FFF8EC;border:7px solid #231A3D;border-radius:44px;box-shadow:0 14px 0 #231A3D;display:flex;align-items:center;gap:44px">
+<div style="position:absolute;left:0;right:0;top:-62px;display:flex;justify-content:center">
+<div style="width:116px;height:116px;box-sizing:border-box;border-radius:50%;background:#FFC93C;border:7px solid #231A3D;box-shadow:0 8px 0 #231A3D;display:flex;align-items:center;justify-content:center" aria-label="いちじていし">
+<svg viewBox="0 0 24 24" width="62" height="62" fill="#FFF8EC" stroke="#231A3D" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+</div>
+</div>
+<div style="flex-grow:1;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:14px">
+<div class="mp ol-s" style="padding:2px 16px 6px;background:#E8284F;border:4px solid #231A3D;border-radius:12px;font-size:34px;color:#ffffff">2P</div>
+<div class="wob" style="width:62px;height:62px;box-sizing:border-box;border-radius:50%;background:#FFF8EC;border:5px solid #231A3D;display:flex;align-items:center;justify-content:center">
+<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#E8284F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-label="つながりが きれた" role="img"><path d="M2.5 8.5a14 14 0 0 1 19 0"/><path d="M5.5 12a9.5 9.5 0 0 1 13 0"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/><path d="M3.5 3.5l17 17"/></svg>
+</div>
+</div>
+<div class="mp" style="font-size:46px;line-height:1.2">ちょっと<br>まってね</div>
+<div style="display:flex;align-items:center;gap:10px;font-size:26px;font-weight:900">
+<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#E8284F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
+<span>もういちど ピッ!</span>
+<span style="display:flex;gap:6px;margin-left:4px"><span class="d1" style="width:10px;height:10px;border-radius:50%;background:#231A3D"></span><span class="d2" style="width:10px;height:10px;border-radius:50%;background:#231A3D"></span><span class="d3" style="width:10px;height:10px;border-radius:50%;background:#231A3D"></span></span>
+</div>
+</div>
+<div class="pulse" style="width:210px;height:210px;box-sizing:border-box;border-radius:28px;border:7px solid #E8284F;background:#ffffff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transform:rotate(3deg)">
+<svg viewBox="0 0 100 100" width="158" height="158" role="img" aria-label="2Pの再接続用QRコード"><g fill="#231A3D"><rect x="2" y="2" width="28" height="28" rx="5"/><rect x="70" y="2" width="28" height="28" rx="5"/><rect x="2" y="70" width="28" height="28" rx="5"/></g><g fill="#ffffff"><rect x="8" y="8" width="16" height="16" rx="3"/><rect x="76" y="8" width="16" height="16" rx="3"/><rect x="8" y="76" width="16" height="16" rx="3"/></g><g fill="#231A3D"><rect x="12" y="12" width="8" height="8" rx="1.5"/><rect x="80" y="12" width="8" height="8" rx="1.5"/><rect x="12" y="80" width="8" height="8" rx="1.5"/></g><text x="50" y="58" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="700" fill="#A39BB8">QR</text></svg>
+</div>
+</div>
+</div>
+
+<div style="position:absolute;left:0;right:0;bottom:36px;display:flex;justify-content:center">
+<div style="display:flex;align-items:center;gap:12px;padding:10px 26px;border-radius:999px;background:#FFF8EC;border:5px solid #231A3D;font-size:24px;font-weight:900">
+<span>つながったら</span>
+<span class="mp" style="font-size:30px;color:#E8284F">3・2・1</span>
+<span>で さいかい!</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</body>
+</html>
