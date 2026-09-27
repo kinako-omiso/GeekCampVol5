@@ -1,10 +1,48 @@
-import { Suspense, lazy } from 'react'
+import { createBrowserRouter, Navigate } from 'react-router'
 
-const PhotoModelPage = lazy(() => import('../dev/photo-model/PhotoModelPage'))
-
-export function AppRouter() {
-  if (window.location.pathname === '/dev/photo-model') {
-    return <Suspense fallback={<p>Quick Scanを読み込んでいます…</p>}><PhotoModelPage /></Suspense>
-  }
-  return <main style={{ padding: 32 }}><h1>GikCamp Vol.5</h1><a href="/dev/photo-model">Quick Scan 検証画面を開く</a></main>
-}
+// 画面ごとに遅延読み込みする（Babylon.js・MediaPipe を最初に読み込まないため）
+export const router = createBrowserRouter([
+  { path: '/', element: <Navigate to="/host" replace /> },
+  {
+    path: '/host',
+    lazy: async () => ({
+      Component: (await import('./host/HostFlow')).HostFlow,
+    }),
+  },
+  {
+    path: '/controller',
+    lazy: async () => ({
+      Component: (await import('./controller/ControllerFlow')).ControllerFlow,
+    }),
+  },
+  {
+    path: '/dev/sensor',
+    lazy: async () => ({
+      Component: (await import('../dev/sensor/SensorPage')).SensorPage,
+    }),
+  },
+  {
+    path: '/dev/peer',
+    lazy: async () => ({
+      Component: (await import('../dev/peer/PeerPage')).PeerPage,
+    }),
+  },
+  {
+    path: '/dev/babylon',
+    lazy: async () => ({
+      Component: (await import('../dev/babylon/BabylonPage')).BabylonPage,
+    }),
+  },
+  {
+    path: '/dev/physics',
+    lazy: async () => ({
+      Component: (await import('../dev/physics/PhysicsPage')).PhysicsPage,
+    }),
+  },
+  {
+    path: '/dev/photo-model',
+    lazy: async () => ({
+      Component: (await import('../dev/photo-model/PhotoModelPage')).default,
+    }),
+  },
+])
