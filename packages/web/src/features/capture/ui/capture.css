@@ -1,0 +1,183 @@
+/* 見本：docs/design/screens/phone-02-scan.html */
+.capture { background: var(--ss-ink); color: var(--ss-ink); }
+
+.capture__layout {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(var(--u) * 232);
+}
+
+/* ---- 左：カメラ ---- */
+.capture__preview {
+  position: relative;
+  overflow: hidden;
+  background: var(--ss-ink);
+}
+.capture__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.capture__camera-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: calc(var(--u) * 28);
+}
+.capture__guide {
+  position: absolute;
+  left: 18%;
+  right: 17%;
+  top: 18%;
+  bottom: 6%;
+  box-sizing: border-box;
+  border: calc(var(--u) * 6) dashed #fff;
+  border-radius: calc(var(--u) * 34);
+  animation: capture-guide 1.4s ease-in-out infinite;
+}
+.capture__tips {
+  position: absolute;
+  left: calc(var(--u) * 16);
+  top: calc(var(--u) * 14);
+  display: flex;
+  gap: calc(var(--u) * 8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.capture__tip {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 6);
+  padding: calc(var(--u) * 5) calc(var(--u) * 12) calc(var(--u) * 5) calc(var(--u) * 8);
+  background: var(--ss-cream);
+  border: calc(var(--u) * 4) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  font-size: calc(var(--u) * 17);
+}
+.capture__tip-icon { width: calc(var(--u) * 24); height: calc(var(--u) * 24); }
+
+/* ---- 右：プレイヤー色のパネル ---- */
+.capture__side {
+  box-sizing: border-box;
+  background: var(--player);
+  border-left: calc(var(--u) * 6) solid var(--ss-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 12);
+  padding: calc(var(--u) * 14) calc(var(--u) * 16);
+}
+.capture__player { font-size: calc(var(--u) * 40); color: #fff; }
+.capture__shutter {
+  position: relative;
+  width: calc(var(--u) * 150);
+  height: calc(var(--u) * 150);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--ss-cream);
+  border: calc(var(--u) * 7) solid var(--ss-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: capture-ring 1.3s ease-out infinite;
+}
+.capture__shutter:active { transform: scale(0.94); }
+.capture__shutter:disabled { opacity: 0.5; animation: none; cursor: default; }
+.capture__shutter-ring {
+  position: absolute;
+  inset: calc(var(--u) * 6);
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: calc(var(--u) * 10) solid var(--player);
+}
+.capture__shutter-icon { width: calc(var(--u) * 66); height: calc(var(--u) * 66); }
+.capture__shutter-icon svg { stroke-width: 2.2; }
+.capture__shutter-label { font-size: calc(var(--u) * 28); color: #fff; }
+
+/* ---- 送信中 ---- */
+.capture__sending {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ss-ink) 88%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 22);
+  color: #fff;
+}
+.capture__sending-icon {
+  width: calc(var(--u) * 92);
+  height: calc(var(--u) * 92);
+  color: var(--ss-sun);
+  animation: capture-up 0.8s ease-in-out infinite;
+}
+.capture__sending-icon svg { stroke-width: 2.6; }
+.capture__sending-title { font-size: calc(var(--u) * 46); }
+.capture__sending-bar {
+  width: calc(var(--u) * 440);
+  height: calc(var(--u) * 30);
+  box-sizing: border-box;
+  border: calc(var(--u) * 5) solid var(--ss-cream);
+  border-radius: var(--ss-radius-pill);
+  overflow: hidden;
+}
+.capture__sending-fill {
+  height: 100%;
+  background: var(--ss-sun);
+  animation: capture-progress ease-in-out both;
+}
+
+/* ---- 送信完了 ---- */
+.capture__sent {
+  height: 100%;
+  background: var(--player);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 40);
+  color: #fff;
+}
+.capture__sent-badge {
+  width: calc(var(--u) * 170);
+  height: calc(var(--u) * 170);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--ss-sun);
+  border: calc(var(--u) * 8) solid var(--ss-ink);
+  box-shadow: 0 calc(var(--u) * 10) 0 var(--ss-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ss-ink);
+  animation: ss-pop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.capture__sent-check { width: calc(var(--u) * 108); height: calc(var(--u) * 108); }
+.capture__sent-check svg { stroke-width: 3.4; }
+.capture__sent-text { display: flex; flex-direction: column; gap: calc(var(--u) * 16); }
+.capture__sent-title { font-size: calc(var(--u) * 84); color: var(--ss-sun); }
+.capture__sent-sub {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 12);
+  font-size: calc(var(--u) * 32);
+}
+.capture__sent-monitor { width: calc(var(--u) * 46); height: calc(var(--u) * 46); }
+
+@keyframes capture-guide { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+@keyframes capture-ring {
+  0% { box-shadow: 0 calc(var(--u) * 8) 0 var(--ss-ink), 0 0 0 0 rgb(255 255 255 / 0.9); }
+  100% { box-shadow: 0 calc(var(--u) * 8) 0 var(--ss-ink), 0 0 0 calc(var(--u) * 20) rgb(255 255 255 / 0); }
+}
+@keyframes capture-up {
+  0% { transform: translateY(calc(var(--u) * 12)); opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { transform: translateY(calc(var(--u) * -12)); opacity: 0.3; }
+}
+@keyframes capture-progress { from { width: 0; } to { width: 100%; } }
