@@ -299,7 +299,7 @@ export default function PhotoModelPage() {
 
       <p className="photo-model-status" role="status">{busy ? '処理中 · ' : ''}{status}</p>
       {preparationMetrics && <p className="photo-model-timings">写真準備 {preparationMetrics.totalMs.toFixed(0)} ms（画像 {preparationMetrics.imageLoadMs.toFixed(0)} / モデル {preparationMetrics.modelLoadMs.toFixed(0)} / 縮小 {preparationMetrics.resizeMs.toFixed(0)} / setImage {preparationMetrics.setImageMs.toFixed(0)}）、分割入力 {preparationMetrics.inputWidth}×{preparationMetrics.inputHeight}px</p>}
-      {maskMetrics && <p className="photo-model-timings">Mask表示 {maskMetrics.visibleMs.toFixed(0)} ms（segment {maskMetrics.segmentMs.toFixed(0)} / 変換 {maskMetrics.conversionMs.toFixed(0)} / 色付け {maskMetrics.rasterMs.toFixed(0)} / 重ね描き {maskMetrics.overlayDrawMs.toFixed(0)}）、Mask {maskMetrics.maskWidth}×{maskMetrics.maskHeight}px</p>}
+      {maskMetrics && <p className="photo-model-timings">Mask表示 {maskMetrics.visibleMs.toFixed(0)} ms / 目標 1,500 ms（{maskMetrics.visibleMs <= 1500 ? '目標以内' : '目標超過'}、指定完了から表示までの推定値）（segment {maskMetrics.segmentMs.toFixed(0)} / 変換 {maskMetrics.conversionMs.toFixed(0)} / 色付け {maskMetrics.rasterMs.toFixed(0)} / 重ね描き {maskMetrics.overlayDrawMs.toFixed(0)}）、Mask {maskMetrics.maskWidth}×{maskMetrics.maskHeight}px</p>}
       {error && <p className="photo-model-error" role="alert">{error}</p>}
 
       <div className="photo-model-columns">
