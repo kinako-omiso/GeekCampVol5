@@ -1,0 +1,77 @@
+/* スマホ画面の土台。色・フォントは docs/design/tokens.css の変数を使う */
+.phone-stage {
+  --player: var(--ss-p1);
+  --player-dark: var(--ss-p1-dark);
+  /* 844×390 を基準にした 1px。実機の画面に合わせて縦横比を保ったまま縮む */
+  --u: min(calc(100dvw / 844), calc(100dvh / 390));
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--player);
+  color: #fff;
+  font-family: var(--ss-font-body);
+  font-weight: 900;
+  line-height: 1.3;
+  text-align: left;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.phone-stage[data-player='p2'] {
+  --player: var(--ss-p2);
+  --player-dark: var(--ss-p2-dark);
+}
+:where(.phone-stage) button {
+  font-family: inherit;
+  font-weight: 900;
+  color: var(--ss-ink);
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ふちどり文字。線の半分が外に出るので見た目の太さの2倍を指定する */
+.phone-ol { -webkit-text-stroke: calc(var(--u) * 12) var(--ss-ink); paint-order: stroke fill; }
+.phone-ol-s { -webkit-text-stroke: calc(var(--u) * 6) var(--ss-ink); paint-order: stroke fill; }
+
+/* インライン SVG は親の大きさに合わせる */
+.svg { display: inline-flex; flex-shrink: 0; }
+.svg > svg { width: 100%; height: 100%; }
+
+.phone-cloud {
+  position: absolute;
+  fill: #fff;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+/* 縦持ちのときは横にするよう案内する */
+.phone-stage__rotate { display: none; }
+@media (orientation: portrait) {
+  .phone-stage__rotate {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: var(--player);
+    font-family: var(--ss-font-display);
+    font-size: 32px;
+  }
+  .phone-stage__rotate-icon {
+    width: 96px;
+    height: 96px;
+    animation: phone-stage-rotate 1.6s ease-in-out infinite;
+  }
+}
+@keyframes phone-stage-rotate {
+  0%, 30% { transform: rotate(90deg); }
+  60%, 100% { transform: rotate(0deg); }
+}
