@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>スマホ おてほん 2P</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&amp;family=M+PLUS+Rounded+1c:wght@500;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#231A3D}
+.mp{font-family:'Mochiy Pop One',sans-serif;line-height:1.05}
+.ol{-webkit-text-stroke:12px #231A3D;paint-order:stroke fill}
+.ol-s{-webkit-text-stroke:6px #231A3D;paint-order:stroke fill}
+.back{display:flex;align-items:center;gap:6px;height:42px;padding:0 16px 0 10px;box-sizing:border-box;background:#FFF8EC;border:4px solid #231A3D;border-radius:999px;box-shadow:0 4px 0 #231A3D;font-size:18px;font-weight:900;color:#231A3D;text-decoration:none}
+.back:active{transform:translateY(4px);box-shadow:0 0 0 #231A3D}
+.card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding:0 0 10px;box-sizing:border-box;background:#FFF8EC;border:5px solid #231A3D;border-radius:22px;box-shadow:0 6px 0 #231A3D;cursor:pointer;font-family:inherit;color:#231A3D;transition:transform .12s}
+.card:active{transform:translateY(4px)}
+.sel{background:#FFE9A8;border-color:#231A3D;box-shadow:0 6px 0 #231A3D,0 0 0 6px #FFC93C;transform:translateY(-4px) rotate(-1.5deg)}
+.chip{position:absolute;left:8px;top:8px;display:flex;align-items:center;gap:3px;padding:2px 8px 2px 5px;background:#ffffff;border:3px solid #231A3D;border-radius:999px;font-size:12px;font-weight:900}
+.tick{position:absolute;right:-10px;top:-12px;width:36px;height:36px;box-sizing:border-box;border-radius:50%;background:#FFC93C;border:4px solid #231A3D;display:flex;align-items:center;justify-content:center}
+.go{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:200px;height:312px;box-sizing:border-box;background:#FFC93C;border:7px solid #231A3D;border-radius:32px;cursor:pointer;padding:0;font-family:inherit;color:#231A3D}
+.go:active{transform:translateY(8px)}
+@keyframes glow{0%{box-shadow:0 10px 0 #231A3D,0 0 0 0 rgba(255,255,255,.9)}100%{box-shadow:0 10px 0 #231A3D,0 0 0 22px rgba(255,255,255,0)}}
+.glow{animation:glow 1.3s ease-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.bob{animation:bob 1.2s ease-in-out infinite}
+@keyframes hint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.hint{animation:hint 1.2s ease-in-out infinite}
+@keyframes pop{0%{transform:scale(0) rotate(-20deg)}70%{transform:scale(1.12) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
+.pop{animation:pop .5s cubic-bezier(.2,1.5,.4,1) both}
+</style>
+</helmet>
+<div style="width:844px;height:390px;position:relative;overflow:hidden;background-color:{{pc}};font-family:'M PLUS Rounded 1c',sans-serif;color:#ffffff">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<path id="mugP" d="M40 40H140V154Q140 170 124 170H56Q40 170 40 154ZM140 66H158Q182 66 182 96V112Q182 142 158 142H140V124H154Q164 124 164 112V96Q164 84 154 84H140Z"/>
+<symbol id="mug" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#mugP" transform="translate(18 -14)"/><use href="#mugP" transform="translate(9 -7)"/><use href="#mugP"/></g><use href="#mugP" transform="translate(18 -14)" fill="#77819F"/><use href="#mugP" transform="translate(13.5 -10.5)" fill="#8791AF"/><use href="#mugP" transform="translate(9 -7)" fill="#98A2BF"/><use href="#mugP" transform="translate(4.5 -3.5)" fill="#A9B2CE"/><use href="#mugP" fill="#F4F6FC" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="48" y="124" width="9" height="32" rx="4.5" fill="#ffffff"/></symbol>
+<rect id="erB" x="16" y="78" width="170" height="72" rx="12"/>
+<rect id="erS" x="80" y="72" width="112" height="84" rx="6"/>
+<symbol id="eraser" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#erB" transform="translate(18 -16)"/><use href="#erS" transform="translate(18 -16)"/><use href="#erB"/><use href="#erS"/></g><use href="#erB" transform="translate(18 -16)" fill="#A3AABD"/><use href="#erS" transform="translate(18 -16)" fill="#646D85"/><use href="#erB" transform="translate(12 -10.7)" fill="#AFB6C7"/><use href="#erS" transform="translate(12 -10.7)" fill="#707991"/><use href="#erB" transform="translate(6 -5.3)" fill="#BBC2D1"/><use href="#erS" transform="translate(6 -5.3)" fill="#7C859D"/><use href="#erB" fill="#F7F8FB" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><use href="#erS" fill="#A9B2C6" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="82" y="102" width="108" height="16" fill="#3B4257"/></symbol>
+<path id="blkP" d="M46 64Q46 50 60 50H146Q160 50 160 64V156Q160 170 146 170H60Q46 170 46 156Z"/>
+<symbol id="block" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#blkP" transform="translate(18 -14)"/><use href="#blkP" transform="translate(9 -7)"/><use href="#blkP"/></g><use href="#blkP" transform="translate(18 -14)" fill="#C9A24A"/><use href="#blkP" transform="translate(13.5 -10.5)" fill="#D4AE56"/><use href="#blkP" transform="translate(9 -7)" fill="#DDB962"/><use href="#blkP" transform="translate(4.5 -3.5)" fill="#E6C46F"/><use href="#blkP" fill="#FFE7A8" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><path d="M103 132l6 12 13 2-9.5 9 2.3 13L103 162l-11.8 6 2.3-13-9.5-9 13-2z" fill="#F6C544" stroke="#231A3D" stroke-width="3" stroke-linejoin="round"/></symbol>
+<path id="mlkP" d="M60 80L82 44H140L162 80V172H60Z"/>
+<symbol id="milk" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#mlkP" transform="translate(18 -14)"/><use href="#mlkP" transform="translate(9 -7)"/><use href="#mlkP"/></g><use href="#mlkP" transform="translate(18 -14)" fill="#AEB8D2"/><use href="#mlkP" transform="translate(13.5 -10.5)" fill="#B8C1D9"/><use href="#mlkP" transform="translate(9 -7)" fill="#C1C9DF"/><use href="#mlkP" transform="translate(4.5 -3.5)" fill="#CBD2E6"/><use href="#mlkP" fill="#F4F7FF" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="82" y="36" width="58" height="10" rx="3" fill="#E4E9F5" stroke="#231A3D" stroke-width="3"/><path d="M60 80H162" stroke="#231A3D" stroke-width="3"/><rect x="60" y="146" width="102" height="18" fill="#8FD19E" stroke="#231A3D" stroke-width="3"/></symbol>
+<path id="dntP" fill-rule="evenodd" d="M40 110a66 60 0 1 0 132 0a66 60 0 1 0 -132 0ZM86 110a20 17 0 1 0 40 0a20 17 0 1 0 -40 0Z"/>
+<symbol id="donut" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#dntP" transform="translate(18 -14)"/><use href="#dntP" transform="translate(9 -7)"/><use href="#dntP"/></g><use href="#dntP" transform="translate(18 -14)" fill="#B98150"/><use href="#dntP" transform="translate(13.5 -10.5)" fill="#C38B5A"/><use href="#dntP" transform="translate(9 -7)" fill="#CD9664"/><use href="#dntP" transform="translate(4.5 -3.5)" fill="#D8A16E"/><use href="#dntP" fill="#F2C28B" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><g stroke="#231A3D" stroke-width="2"><rect x="56" y="116" width="12" height="5" rx="2.5" fill="#7ED9B0" transform="rotate(-30 62 118)"/><rect x="146" y="120" width="12" height="5" rx="2.5" fill="#FFD95A" transform="rotate(25 152 122)"/><rect x="66" y="146" width="12" height="5" rx="2.5" fill="#B9A3F0" transform="rotate(15 72 148)"/><rect x="136" y="148" width="12" height="5" rx="2.5" fill="#7ED9B0" transform="rotate(-20 142 150)"/><rect x="100" y="154" width="12" height="5" rx="2.5" fill="#FFD95A"/><rect x="52" y="92" width="12" height="5" rx="2.5" fill="#B9A3F0" transform="rotate(40 58 94)"/><rect x="150" y="92" width="12" height="5" rx="2.5" fill="#7ED9B0" transform="rotate(-40 156 94)"/></g></symbol>
+<path id="strP" d="M106 38l20 42 46 6-34 32 9 46-41-23-41 23 9-46-34-32 46-6z"/>
+<symbol id="star" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#strP" transform="translate(18 -14)"/><use href="#strP" transform="translate(9 -7)"/><use href="#strP"/></g><use href="#strP" transform="translate(18 -14)" fill="#7FC39A"/><use href="#strP" transform="translate(13.5 -10.5)" fill="#8ACBA4"/><use href="#strP" transform="translate(9 -7)" fill="#96D3AE"/><use href="#strP" transform="translate(4.5 -3.5)" fill="#A8DDBA"/><use href="#strP" fill="#C9F0D6" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="eyes-r" viewBox="0 0 80 44"><g fill="#ffffff" stroke="#231A3D" stroke-width="4"><ellipse cx="20" cy="24" rx="13" ry="16"/><ellipse cx="60" cy="24" rx="13" ry="16"/></g><g fill="#231A3D"><circle cx="25" cy="25" r="7.5"/><circle cx="65" cy="25" r="7.5"/></g><g fill="#ffffff"><circle cx="27.5" cy="21.5" r="2.6"/><circle cx="67.5" cy="21.5" r="2.6"/></g></symbol>
+<symbol id="eyes-star" viewBox="0 0 80 44"><g fill="#ffffff" stroke="#231A3D" stroke-width="4"><ellipse cx="20" cy="24" rx="13" ry="16"/><ellipse cx="60" cy="24" rx="13" ry="16"/></g><g fill="#FFC93C" stroke="#231A3D" stroke-width="2" stroke-linejoin="round"><path d="M20 13l3 6.2 6.8.8-5 4.6 1.3 6.7L20 28l-6.1 3.3 1.3-6.7-5-4.6 6.8-.8z"/><path d="M60 13l3 6.2 6.8.8-5 4.6 1.3 6.7L60 28l-6.1 3.3 1.3-6.7-5-4.6 6.8-.8z"/></g></symbol>
+<symbol id="eyes-happy" viewBox="0 0 80 44"><g fill="none" stroke="#231A3D" stroke-width="5.5" stroke-linecap="round"><path d="M8 30Q20 12 32 30"/><path d="M48 30Q60 12 72 30"/></g></symbol>
+<symbol id="i-pow" viewBox="0 0 24 24"><path d="M12 2.5l1.9 4.6 4.5-2.1-1.6 4.8 4.9 1.2-4.2 2.9 3.1 3.9-5-.4.2 5-3.8-3.3-3.8 3.3.2-5-5 .4 3.1-3.9L2.3 11l4.9-1.2L5.6 5l4.5 2.1z"/></symbol>
+<symbol id="i-reach" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M7 8l-4 4 4 4"/><path d="M17 8l4 4-4 4"/></symbol>
+<symbol id="i-speed" viewBox="0 0 24 24"><path d="M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+<symbol id="i-hand" viewBox="0 0 24 24"><path d="M9 11V5a1.8 1.8 0 0 1 3.6 0v5"/><path d="M12.6 10V8.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M16.2 10.6a1.8 1.8 0 0 1 3.6 0V15a7 7 0 0 1-7 7h-.6a6.5 6.5 0 0 1-5.2-2.6L3.8 15.6a1.8 1.8 0 0 1 2.8-2.2L9 15.5"/></symbol>
+<symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 21h7"/><path d="M12 16.5V21"/></symbol>
+</defs></svg>
+
+<div style="position:absolute;left:0;right:0;top:0;height:62px;box-sizing:border-box;padding:0 16px;display:flex;align-items:center;gap:12px">
+<a class="back" href="PhoneScan2P.dc.html" aria-label="スキャンに もどる"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#231A3D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-back"/></svg><span>もどる</span></a>
+<div class="mp ol-s" style="flex-grow:1;text-align:center;font-size:28px;color:#ffffff">おてほん から えらぶ</div>
+<div class="mp" style="padding:4px 14px 6px;border-radius:12px;background:#FFF8EC;color:{{pc}};border:4px solid #231A3D;font-size:24px">{{label}}</div>
+</div>
+
+<div style="position:absolute;left:16px;top:68px;width:600px;height:312px;display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr));gap:12px">
+<sc-for list="{{presets}}" as="p" hint-placeholder-count="6">
+<button class="{{p.cls}}" onClick="{{p.pick}}" aria-label="{{p.name}}">
+<svg viewBox="0 0 220 200" width="118" height="107" aria-hidden="true"><use href="#{{p.sym}}"/><use href="#{{p.eyes}}" x="{{p.ex}}" y="{{p.ey}}" width="{{p.ew}}" height="{{p.eh}}"/></svg>
+<span style="font-size:18px;font-weight:900">{{p.name}}</span>
+<span class="chip"><svg viewBox="0 0 24 24" width="15" height="15" fill="{{p.iconFill}}" stroke="{{p.iconStroke}}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#{{p.icon}}"/></svg><span>{{p.type}}</span></span>
+<sc-if value="{{p.selected}}" hint-placeholder-val="{{false}}"><span class="tick"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#231A3D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg></span></sc-if>
+</button>
+</sc-for>
+</div>
+
+<div style="position:absolute;left:630px;top:68px">
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{false}}">
+<button class="go glow" onClick="{{confirm}}" aria-label="このコマに する">
+<div class="bob"><svg viewBox="0 0 220 200" width="150" height="136" aria-hidden="true"><use href="#{{selSym}}"/><use href="#eyes-happy" x="{{selEx}}" y="{{selEy}}" width="{{selEw}}" height="{{selEh}}"/></svg></div>
+<span class="mp" style="font-size:30px">これに</span>
+<span class="mp" style="font-size:30px">する!</span>
+</button>
+</sc-if>
+<sc-if value="{{noSel}}" hint-placeholder-val="{{true}}">
+<div style="width:200px;height:312px;box-sizing:border-box;border:5px dashed rgba(255,255,255,.85);border-radius:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center">
+<svg class="hint" viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-hand"/></svg>
+<span class="mp" style="font-size:22px;line-height:1.4">すきな コを<br>タッチ!</span>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+<div style="position:absolute;inset:0;background-color:{{pc}};display:flex;align-items:center;justify-content:center;gap:34px">
+<div class="pop" style="position:relative;width:220px;height:200px">
+<svg viewBox="0 0 220 200" width="220" height="200" aria-hidden="true"><use href="#{{selSym}}"/><use href="#eyes-star" x="{{selEx}}" y="{{selEy}}" width="{{selEw}}" height="{{selEh}}"/></svg>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div class="mp ol" style="font-size:88px;color:#FFC93C">きまり!</div>
+<div style="display:flex;align-items:center;gap:12px;font-size:30px;font-weight:900">
+<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-monitor"/></svg>
+<span>PCを みてね!</span>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"player":{"editor":"enum","options":["1P","2P"],"default":"2P"},"$preview":{"width":844,"height":390}}'>
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = { sel: -1, done: false };
+  }
+  componentWillUnmount() {
+    clearTimeout(this.t);
+  }
+  renderVals() {
+    const s = this.state || {};
+    const sel = typeof s.sel === 'number' ? s.sel : -1;
+    const p2 = (this.props.player ?? '2P') === '2P';
+    const FILL = { iconFill: '#231A3D', iconStroke: 'none' };
+    const LINE = { iconFill: 'none', iconStroke: '#231A3D' };
+    const list = [
+      { name: 'マグカップ', sym: 'mug', ex: 50, ey: 70, ew: 80, eh: 44, type: 'パワー', icon: 'i-pow', ...FILL },
+      { name: 'けしゴム', sym: 'eraser', ex: 18, ey: 92, ew: 62, eh: 34, type: 'スピード', icon: 'i-speed', ...FILL },
+      { name: 'つみき', sym: 'block', ex: 68, ey: 86, ew: 70, eh: 39, type: 'パワー', icon: 'i-pow', ...FILL },
+      { name: 'ぎゅうにゅう', sym: 'milk', ex: 79, ey: 100, ew: 68, eh: 37, type: 'リーチ', icon: 'i-reach', ...LINE },
+      { name: 'ドーナツ', sym: 'donut', ex: 78, ey: 58, ew: 56, eh: 31, type: 'スピード', icon: 'i-speed', ...FILL },
+      { name: 'ほし', sym: 'star', ex: 79, ey: 86, ew: 54, eh: 30, type: 'リーチ', icon: 'i-reach', ...LINE }
+    ];
+    const presets = list.map((p, i) => ({
+      ...p,
+      selected: i === sel,
+      cls: i === sel ? 'card sel' : 'card',
+      eyes: i === sel ? 'eyes-star' : 'eyes-r',
+      pick: () => this.setState({ sel: i })
+    }));
+    const cur = sel >= 0 ? list[sel] : list[0];
+    return {
+      pc: p2 ? '#E8284F' : '#2F6BFF',
+      label: p2 ? '2P' : '1P',
+      presets: presets,
+      hasSel: sel >= 0,
+      noSel: sel < 0,
+      done: !!s.done,
+      selSym: cur.sym,
+      selEx: cur.ex,
+      selEy: cur.ey,
+      selEw: cur.ew,
+      selEh: cur.eh,
+      confirm: () => {
+        clearTimeout(this.t);
+        this.setState({ done: true });
+        this.t = setTimeout(() => this.setState({ done: false, sel: -1 }), 2600);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
