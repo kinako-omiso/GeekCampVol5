@@ -1,0 +1,5 @@
+.peer-controller__waiting { min-height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; }
+.peer-controller__waiting h1 { font-size: 32px; margin: 0; }
+.peer-controller__waiting button, .peer-controller__warning button { padding: 10px 18px; }
+.peer-controller__warning { position: fixed; z-index: 200; top: calc(env(safe-area-inset-top) + 44px); left: 50%; transform: translateX(-50%); width: min(90vw, 520px); box-sizing: border-box; padding: 12px; background: #7b1731; color: white; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.peer-controller__warning button { flex: none; }

@@ -10,6 +10,7 @@
   height: calc(var(--u) * 26);
 }
 .join__signal svg { stroke-width: 2.8; }
+.join__signal.is-disconnected { opacity: .3; filter: grayscale(1); }
 
 /* ---- はじめ ---- */
 .join__start {
