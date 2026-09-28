@@ -13,8 +13,11 @@ import './lobby.css'
 
 /** ロビーで見せる1人ぶんの状況。スマホの接続 → センサー → 準備の順に進む */
 export type LobbyPlayerStatus = {
+  // スマホが QR から /controller を開いて PC とつながった
   connected: boolean
+  // スマホの接続画面で「タッチ!」を押し、モーション権限が許可された（基準姿勢の計測が始まる）
   sensorReady: boolean
+  // 基準姿勢が取れて、スマホに「OK! PCを みてね!」が出た
   ready: boolean
 }
 
