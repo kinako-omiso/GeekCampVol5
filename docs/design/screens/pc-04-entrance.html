@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>登場演出(1人ずつ) — Scannee's Summit デザイン見本</title>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&amp;family=M+PLUS+Rounded+1c:wght@500;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#8FDBFF}
+.mp{font-family:'Mochiy Pop One',sans-serif;line-height:1.05}
+.ol{-webkit-text-stroke:14px #231A3D;paint-order:stroke fill}
+.ol-m{-webkit-text-stroke:10px #231A3D;paint-order:stroke fill}
+.ol-s{-webkit-text-stroke:6px #231A3D;paint-order:stroke fill}
+@keyframes rays{to{transform:rotate(360deg)}}
+.rays{animation:rays 40s linear infinite}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(1700px)}}
+.drift{animation:drift 40s linear infinite}
+@keyframes fade{0%,93%{opacity:1}100%{opacity:0}}
+.fade{animation:fade 6s linear infinite}
+@keyframes drop{0%{transform:translateY(-660px)}17%,100%{transform:translateY(0)}}
+.drop{animation:drop 6s cubic-bezier(.5,0,.9,.6) infinite}
+@keyframes squash{0%,16%{transform:scale(.9,1.18)}19%{transform:scale(1.28,.7)}22%{transform:scale(.92,1.1)}25%,100%{transform:scale(1,1)}}
+.squash{animation:squash 6s ease-out infinite;transform-origin:50% 92%}
+@keyframes lines{0%,16%{opacity:1}19%,100%{opacity:0}}
+.lines{animation:lines 6s linear infinite}
+@keyframes eyeShut{0%,29%{opacity:1}30%,100%{opacity:0}}
+.eyeShut{animation:eyeShut 6s linear infinite}
+@keyframes eyeOpen{0%,29%{opacity:0;transform:scaleY(.1)}32%{opacity:1;transform:scaleY(1.3)}34%,70%{opacity:1;transform:scaleY(1)}71%{transform:scaleY(.1)}72.5%,100%{opacity:1;transform:scaleY(1)}}
+.eyeOpen{animation:eyeOpen 6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes puffL{0%,18%{transform:translate(0,0) scale(0);opacity:0}20%{transform:translate(0,0) scale(1);opacity:1}34%,100%{transform:translate(-90px,-14px) scale(1.3);opacity:0}}
+.puffL{animation:puffL 6s ease-out infinite}
+@keyframes puffR{0%,18%{transform:translate(0,0) scale(0);opacity:0}20%{transform:translate(0,0) scale(1);opacity:1}34%,100%{transform:translate(90px,-14px) scale(1.3);opacity:0}}
+.puffR{animation:puffR 6s ease-out infinite}
+@keyframes flash{0%,18%{opacity:0}19.5%{opacity:.9}26%,100%{opacity:0}}
+.flash{animation:flash 6s linear infinite;pointer-events:none}
+@keyframes shake{0%,18%{transform:translate(0,0)}19%{transform:translate(-12px,8px)}20%{transform:translate(10px,-6px)}21%{transform:translate(-7px,4px)}22%{transform:translate(4px,-2px)}23%,100%{transform:translate(0,0)}}
+.shake{animation:shake 6s linear infinite}
+@keyframes dosun{0%,18%{opacity:0;transform:scale(.3) rotate(-8deg)}20%{opacity:1;transform:scale(1.15) rotate(-8deg)}22%,27%{opacity:1;transform:scale(1) rotate(-8deg)}30%,100%{opacity:0;transform:scale(1) rotate(-8deg)}}
+.dosun{animation:dosun 6s ease-out infinite}
+@keyframes pachi{0%,29%{opacity:0;transform:scale(.3) rotate(8deg)}32%{opacity:1;transform:scale(1.15) rotate(8deg)}35%,48%{opacity:1;transform:scale(1) rotate(8deg)}52%,100%{opacity:0;transform:scale(1) rotate(8deg)}}
+.pachi{animation:pachi 6s ease-out infinite}
+@keyframes bannerIn{0%,26%{transform:translateX(130%)}31%{transform:translateX(-3%)}33%,100%{transform:translateX(0)}}
+.bannerIn{animation:bannerIn 6s ease-out infinite}
+@keyframes badge{0%,34%{transform:scale(0) rotate(-20deg)}38%{transform:scale(1.15) rotate(6deg)}40%,100%{transform:scale(1) rotate(0)}}
+.badgeIn{animation:badge 6s ease-out infinite both}
+@keyframes ribbon{0%,48%{transform:scale(2.6) rotate(-4deg);opacity:0}52%{transform:scale(.92) rotate(-4deg);opacity:1}54%,100%{transform:scale(1) rotate(-4deg);opacity:1}}
+.ribbonIn{animation:ribbon 6s ease-out infinite}
+.col{display:flex;flex-direction:column;align-items:center;gap:8px;width:150px}
+.badge{width:110px;height:110px;box-sizing:border-box;border-radius:50%;background:#FFF8EC;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 5px #231A3D,0 9px 0 5px #231A3D}
+.lbl{font-size:20px;font-weight:900}
+</style>
+<style>
+/* 見本ページの枠(デザインの一部ではない) */
+body{margin:0!important;padding:32px 40px 60px!important;background:#E6E2EE!important;font-family:'M PLUS Rounded 1c',sans-serif;color:#231A3D}
+.ss-head{max-width:1280px;margin:0 0 28px}
+.ss-head h1{font:900 28px/1.3 'M PLUS Rounded 1c',sans-serif;margin:0 0 6px}
+.ss-head p{font:800 15px/1.7 'M PLUS Rounded 1c',sans-serif;margin:0;color:#4A4163}
+.ss-head a{color:#1B3FA8}
+.ss-meta{display:inline-block;margin:0 8px 8px 0;padding:2px 10px;border-radius:999px;background:#fff;border:2px solid #231A3D;font:900 13px/1.6 'M PLUS Rounded 1c',sans-serif}
+.ss-variant{margin:0 0 40px}
+.ss-variant h2{font:900 17px/1.4 'M PLUS Rounded 1c',sans-serif;margin:0 0 10px}
+.ss-frame{position:relative;overflow:hidden;box-shadow:0 0 0 3px #231A3D,0 10px 0 3px rgba(35,26,61,.25)}
+</style>
+</head>
+<body>
+<header class="ss-head">
+<p><a href="index.html">← 画面一覧</a></p>
+<h1>登場演出(1人ずつ)</h1>
+<span class="ss-meta">ルート: /host</span><span class="ss-meta">基準サイズ: 1280×720</span><span class="ss-meta">元データ: source/Entrance.dc.html</span>
+<p>空から落ちてきて島にドスン → 目がパチッと開く → 能力バッジ → タイプのリボン。6秒ループの見本(本番は1回再生)。1P→2Pの順に流す。</p>
+</header>
+<section class="ss-variant">
+<h2>1P</h2>
+<div class="ss-frame" style="width:1280px;height:720px">
+<div style="width:1280px;height:720px;position:relative;overflow:hidden;background:#8FDBFF;font-family:'M PLUS Rounded 1c',sans-serif;color:#231A3D">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<path id="mugP" d="M40 40H140V154Q140 170 124 170H56Q40 170 40 154ZM140 66H158Q182 66 182 96V112Q182 142 158 142H140V124H154Q164 124 164 112V96Q164 84 154 84H140Z"/>
+<symbol id="mug" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#mugP" transform="translate(18 -14)"/><use href="#mugP" transform="translate(9 -7)"/><use href="#mugP"/></g><use href="#mugP" transform="translate(18 -14)" fill="#77819F"/><use href="#mugP" transform="translate(15 -11.7)" fill="#828CAA"/><use href="#mugP" transform="translate(12 -9.3)" fill="#8D97B4"/><use href="#mugP" transform="translate(9 -7)" fill="#98A2BF"/><use href="#mugP" transform="translate(6 -4.7)" fill="#A3ACC9"/><use href="#mugP" transform="translate(3 -2.3)" fill="#AEB7D3"/><use href="#mugP" fill="#F4F6FC" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="48" y="124" width="9" height="32" rx="4.5" fill="#ffffff"/></symbol>
+<rect id="erB" x="16" y="78" width="170" height="72" rx="12"/>
+<rect id="erS" x="80" y="72" width="112" height="84" rx="6"/>
+<symbol id="eraser" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#erB" transform="translate(18 -16)"/><use href="#erS" transform="translate(18 -16)"/><use href="#erB"/><use href="#erS"/></g><use href="#erB" transform="translate(18 -16)" fill="#A3AABD"/><use href="#erS" transform="translate(18 -16)" fill="#646D85"/><use href="#erB" transform="translate(15 -13.3)" fill="#A9B0C2"/><use href="#erS" transform="translate(15 -13.3)" fill="#6A738B"/><use href="#erB" transform="translate(12 -10.7)" fill="#AFB6C7"/><use href="#erS" transform="translate(12 -10.7)" fill="#707991"/><use href="#erB" transform="translate(9 -8)" fill="#B5BCCC"/><use href="#erS" transform="translate(9 -8)" fill="#767F97"/><use href="#erB" transform="translate(6 -5.3)" fill="#BBC2D1"/><use href="#erS" transform="translate(6 -5.3)" fill="#7C859D"/><use href="#erB" transform="translate(3 -2.7)" fill="#C1C8D6"/><use href="#erS" transform="translate(3 -2.7)" fill="#828BA3"/><use href="#erB" fill="#F7F8FB" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><use href="#erS" fill="#A9B2C6" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="82" y="102" width="108" height="16" fill="#3B4257"/></symbol>
+<symbol id="eyes-r" viewBox="0 0 80 44"><g fill="#ffffff" stroke="#231A3D" stroke-width="4"><ellipse cx="20" cy="24" rx="13" ry="16"/><ellipse cx="60" cy="24" rx="13" ry="16"/></g><g fill="#231A3D"><circle cx="25" cy="25" r="7.5"/><circle cx="65" cy="25" r="7.5"/></g><g fill="#ffffff"><circle cx="27.5" cy="21.5" r="2.6"/><circle cx="67.5" cy="21.5" r="2.6"/></g></symbol>
+<symbol id="eyes-shut" viewBox="0 0 80 44"><g fill="none" stroke="#231A3D" stroke-width="5" stroke-linecap="round"><path d="M8 24Q20 33 32 24"/><path d="M48 24Q60 33 72 24"/></g></symbol>
+<symbol id="isle" viewBox="0 0 400 260"><path d="M30 112L370 112L322 178L266 246L204 226L140 252L84 186Z" fill="#C08F68" stroke="#231A3D" stroke-width="7" stroke-linejoin="round"/><path d="M204 120L266 246L204 226Z" fill="#946848"/><path d="M300 120L322 178L266 246Z" fill="#946848"/><path d="M100 120L84 186L140 252Z" fill="#A87A56"/><path d="M22 106A178 44 0 0 1 378 106Q362 134 344 120Q328 146 306 126Q288 150 266 130Q246 154 224 132Q202 156 180 132Q158 154 136 130Q114 150 94 126Q72 146 56 120Q38 134 22 106Z" fill="#6BD66B" stroke="#231A3D" stroke-width="7" stroke-linejoin="round"/><ellipse cx="200" cy="100" rx="148" ry="28" fill="#8BE68B"/><g fill="#ffffff" stroke="#231A3D" stroke-width="2"><circle cx="92" cy="104" r="5"/><circle cx="312" cy="106" r="5"/><circle cx="262" cy="86" r="4"/></g><g fill="#FFC93C"><circle cx="92" cy="104" r="2"/><circle cx="312" cy="106" r="2"/><circle cx="262" cy="86" r="1.6"/></g></symbol>
+<symbol id="cloud" viewBox="0 0 160 80"><path d="M24 74C8 74 3 54 17 47C13 29 35 20 48 30C54 11 85 7 95 26C107 16 129 22 129 41C147 41 156 62 141 74Z" fill="#ffffff" stroke="#231A3D" stroke-width="5" stroke-linejoin="round"/><path d="M28 66C60 70 110 70 136 64" fill="none" stroke="#DCEFFC" stroke-width="7" stroke-linecap="round"/></symbol>
+<symbol id="st" viewBox="0 0 30 30"><path d="M15 2.5l3.6 7.6 8.3.9-6.2 5.6 1.8 8.2L15 20.6l-7.5 4.2 1.8-8.2-6.2-5.6 8.3-.9z"/></symbol>
+<symbol id="stars2" viewBox="0 0 150 30"><use href="#st" x="0" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="30" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="60" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/><use href="#st" x="90" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/><use href="#st" x="120" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/></symbol>
+<symbol id="stars3" viewBox="0 0 150 30"><use href="#st" x="0" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="30" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="60" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="90" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/><use href="#st" x="120" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/></symbol>
+<symbol id="stars4" viewBox="0 0 150 30"><use href="#st" x="0" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="30" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="60" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="90" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="120" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/></symbol>
+<symbol id="stars5" viewBox="0 0 150 30"><use href="#st" x="0" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="30" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="60" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="90" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="120" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/></symbol>
+<symbol id="i-pow" viewBox="0 0 24 24"><path d="M12 2.5l1.9 4.6 4.5-2.1-1.6 4.8 4.9 1.2-4.2 2.9 3.1 3.9-5-.4.2 5-3.8-3.3-3.8 3.3.2-5-5 .4 3.1-3.9L2.3 11l4.9-1.2L5.6 5l4.5 2.1z"/></symbol>
+<symbol id="i-reach" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M7 8l-4 4 4 4"/><path d="M17 8l4 4-4 4"/></symbol>
+<symbol id="i-speed" viewBox="0 0 24 24"><path d="M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z"/></symbol>
+</defs></svg>
+
+<div class="rays" style="position:absolute;left:-800px;top:-840px;width:2400px;height:2400px;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.32) 0deg 8deg,transparent 8deg 20deg)"></div>
+<svg viewBox="0 0 1280 720" width="1280" height="720" style="position:absolute;inset:0" aria-hidden="true">
+<path d="M0 500L120 430L230 470L350 400L470 460L600 410L740 470L870 400L1000 450L1130 400L1280 440V720H0Z" fill="#79C9EF"/>
+</svg>
+<svg class="drift" viewBox="0 0 160 80" width="200" height="100" style="position:absolute;left:-300px;top:80px;animation-duration:30s;animation-delay:-8s" aria-hidden="true"><use href="#cloud"/></svg>
+<svg class="drift" viewBox="0 0 160 80" width="150" height="75" style="position:absolute;left:-300px;top:250px;animation-duration:24s;animation-delay:-17s" aria-hidden="true"><use href="#cloud"/></svg>
+<svg viewBox="0 0 1280 200" width="1280" height="200" style="position:absolute;left:0;top:610px" aria-hidden="true">
+<path d="M-10 70Q30 18 80 44Q120 -2 180 30Q226 -10 280 26Q330 -8 386 28Q436 -4 490 30Q540 -6 596 26Q646 -8 700 28Q750 -4 806 30Q856 -8 910 26Q960 -4 1016 30Q1066 -8 1120 26Q1170 -2 1220 32Q1260 10 1292 42V210H-10Z" fill="#ffffff" stroke="#231A3D" stroke-width="5" stroke-linejoin="round"/>
+</svg>
+
+<div class="shake" style="position:absolute;inset:0">
+<div class="fade" style="position:absolute;inset:0">
+<div class="lines" style="position:absolute;left:230px;top:0;width:340px;height:500px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.9) 0 5px,transparent 5px 38px)"></div>
+<svg viewBox="0 0 400 260" width="460" height="299" style="position:absolute;left:170px;top:390px" aria-hidden="true"><use href="#isle"/></svg>
+<svg class="puffL" viewBox="0 0 160 80" width="150" height="75" style="position:absolute;left:190px;top:470px" aria-hidden="true"><use href="#cloud"/></svg>
+<svg class="puffR" viewBox="0 0 160 80" width="150" height="75" style="position:absolute;left:470px;top:470px" aria-hidden="true"><use href="#cloud"/></svg>
+<div class="drop" style="position:absolute;left:0;top:0;width:800px;height:720px">
+
+<div class="squash" style="position:absolute;left:208px;top:226px;width:380px;height:345px">
+<svg viewBox="0 0 220 200" width="380" height="345" role="img" aria-label="1Pのコマ(マグカップの例)"><use href="#mug"/><use class="eyeShut" href="#eyes-shut" x="50" y="70" width="80" height="44"/><use class="eyeOpen" href="#eyes-r" x="50" y="70" width="80" height="44"/></svg>
+</div>
+
+
+</div>
+<div class="mp dosun" style="position:absolute;left:520px;top:548px;padding:6px 16px;background:#FFF8EC;border:5px solid #231A3D;border-radius:14px;font-size:34px">ドスン!</div>
+<div class="mp pachi" style="position:absolute;left:520px;top:210px;padding:8px 18px;background:#FFC93C;border:5px solid #231A3D;border-radius:18px;box-shadow:0 5px 0 #231A3D;font-size:40px">パチッ!</div>
+
+<div class="bannerIn" style="position:absolute;left:720px;top:48px;width:540px;height:170px">
+<svg viewBox="0 0 540 170" width="540" height="170" style="position:absolute;inset:0" aria-hidden="true"><path d="M6 10H534L490 85L534 160H6Z" fill="#2F6BFF" stroke="#231A3D" stroke-width="7" stroke-linejoin="round"/></svg>
+<div style="position:absolute;left:34px;top:0;height:170px;display:flex;align-items:center;gap:18px">
+<span class="mp ol" style="font-size:112px;color:#ffffff">1P</span>
+<span class="mp ol-m" style="font-size:44px;color:#FFC93C">とうじょう!</span>
+</div>
+</div>
+
+<div style="position:absolute;left:738px;top:270px;display:flex;gap:18px">
+<div class="col badgeIn"><div class="badge" style="border:8px solid #2F6BFF"><svg viewBox="0 0 24 24" width="56" height="56" fill="#231A3D" aria-hidden="true"><use href="#i-pow"/></svg></div><svg viewBox="0 0 150 30" width="140" height="28" role="img" aria-label="パワー"><use href="#stars4"/></svg><div class="lbl">パワー</div></div>
+<div class="col badgeIn" style="animation-delay:.25s"><div class="badge" style="border:8px solid #2F6BFF"><svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="#231A3D" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-reach"/></svg></div><svg viewBox="0 0 150 30" width="140" height="28" role="img" aria-label="リーチ"><use href="#stars3"/></svg><div class="lbl">リーチ</div></div>
+<div class="col badgeIn" style="animation-delay:.5s"><div class="badge" style="border:8px solid #2F6BFF"><svg viewBox="0 0 24 24" width="56" height="56" fill="#231A3D" aria-hidden="true"><use href="#i-speed"/></svg></div><svg viewBox="0 0 150 30" width="140" height="28" role="img" aria-label="スピード"><use href="#stars2"/></svg><div class="lbl">スピード</div></div>
+</div>
+
+<div style="position:absolute;left:720px;top:500px;width:540px;display:flex;justify-content:center">
+<div class="mp ribbonIn" style="padding:18px 48px 22px;background:#FFC93C;border:7px solid #231A3D;border-radius:20px;box-shadow:0 9px 0 #231A3D;font-size:54px;white-space:nowrap">パワータイプ!</div>
+</div>
+</div>
+</div>
+
+<div class="flash" style="position:absolute;inset:0;background:#ffffff"></div>
+</div>
+</div>
+</section>
+<section class="ss-variant">
+<h2>2P</h2>
+<div class="ss-frame" style="width:1280px;height:720px">
+<div style="width:1280px;height:720px;position:relative;overflow:hidden;background:#8FDBFF;font-family:'M PLUS Rounded 1c',sans-serif;color:#231A3D">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<path id="mugP" d="M40 40H140V154Q140 170 124 170H56Q40 170 40 154ZM140 66H158Q182 66 182 96V112Q182 142 158 142H140V124H154Q164 124 164 112V96Q164 84 154 84H140Z"/>
+<symbol id="mug" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#mugP" transform="translate(18 -14)"/><use href="#mugP" transform="translate(9 -7)"/><use href="#mugP"/></g><use href="#mugP" transform="translate(18 -14)" fill="#77819F"/><use href="#mugP" transform="translate(15 -11.7)" fill="#828CAA"/><use href="#mugP" transform="translate(12 -9.3)" fill="#8D97B4"/><use href="#mugP" transform="translate(9 -7)" fill="#98A2BF"/><use href="#mugP" transform="translate(6 -4.7)" fill="#A3ACC9"/><use href="#mugP" transform="translate(3 -2.3)" fill="#AEB7D3"/><use href="#mugP" fill="#F4F6FC" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="48" y="124" width="9" height="32" rx="4.5" fill="#ffffff"/></symbol>
+<rect id="erB" x="16" y="78" width="170" height="72" rx="12"/>
+<rect id="erS" x="80" y="72" width="112" height="84" rx="6"/>
+<symbol id="eraser" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#erB" transform="translate(18 -16)"/><use href="#erS" transform="translate(18 -16)"/><use href="#erB"/><use href="#erS"/></g><use href="#erB" transform="translate(18 -16)" fill="#A3AABD"/><use href="#erS" transform="translate(18 -16)" fill="#646D85"/><use href="#erB" transform="translate(15 -13.3)" fill="#A9B0C2"/><use href="#erS" transform="translate(15 -13.3)" fill="#6A738B"/><use href="#erB" transform="translate(12 -10.7)" fill="#AFB6C7"/><use href="#erS" transform="translate(12 -10.7)" fill="#707991"/><use href="#erB" transform="translate(9 -8)" fill="#B5BCCC"/><use href="#erS" transform="translate(9 -8)" fill="#767F97"/><use href="#erB" transform="translate(6 -5.3)" fill="#BBC2D1"/><use href="#erS" transform="translate(6 -5.3)" fill="#7C859D"/><use href="#erB" transform="translate(3 -2.7)" fill="#C1C8D6"/><use href="#erS" transform="translate(3 -2.7)" fill="#828BA3"/><use href="#erB" fill="#F7F8FB" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><use href="#erS" fill="#A9B2C6" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="82" y="102" width="108" height="16" fill="#3B4257"/></symbol>
+<symbol id="eyes-r" viewBox="0 0 80 44"><g fill="#ffffff" stroke="#231A3D" stroke-width="4"><ellipse cx="20" cy="24" rx="13" ry="16"/><ellipse cx="60" cy="24" rx="13" ry="16"/></g><g fill="#231A3D"><circle cx="25" cy="25" r="7.5"/><circle cx="65" cy="25" r="7.5"/></g><g fill="#ffffff"><circle cx="27.5" cy="21.5" r="2.6"/><circle cx="67.5" cy="21.5" r="2.6"/></g></symbol>
+<symbol id="eyes-shut" viewBox="0 0 80 44"><g fill="none" stroke="#231A3D" stroke-width="5" stroke-linecap="round"><path d="M8 24Q20 33 32 24"/><path d="M48 24Q60 33 72 24"/></g></symbol>
+<symbol id="isle" viewBox="0 0 400 260"><path d="M30 112L370 112L322 178L266 246L204 226L140 252L84 186Z" fill="#C08F68" stroke="#231A3D" stroke-width="7" stroke-linejoin="round"/><path d="M204 120L266 246L204 226Z" fill="#946848"/><path d="M300 120L322 178L266 246Z" fill="#946848"/><path d="M100 120L84 186L140 252Z" fill="#A87A56"/><path d="M22 106A178 44 0 0 1 378 106Q362 134 344 120Q328 146 306 126Q288 150 266 130Q246 154 224 132Q202 156 180 132Q158 154 136 130Q114 150 94 126Q72 146 56 120Q38 134 22 106Z" fill="#6BD66B" stroke="#231A3D" stroke-width="7" stroke-linejoin="round"/><ellipse cx="200" cy="100" rx="148" ry="28" fill="#8BE68B"/><g fill="#ffffff" stroke="#231A3D" stroke-width="2"><circle cx="92" cy="104" r="5"/><circle cx="312" cy="106" r="5"/><circle cx="262" cy="86" r="4"/></g><g fill="#FFC93C"><circle cx="92" cy="104" r="2"/><circle cx="312" cy="106" r="2"/><circle cx="262" cy="86" r="1.6"/></g></symbol>
+<symbol id="cloud" viewBox="0 0 160 80"><path d="M24 74C8 74 3 54 17 47C13 29 35 20 48 30C54 11 85 7 95 26C107 16 129 22 129 41C147 41 156 62 141 74Z" fill="#ffffff" stroke="#231A3D" stroke-width="5" stroke-linejoin="round"/><path d="M28 66C60 70 110 70 136 64" fill="none" stroke="#DCEFFC" stroke-width="7" stroke-linecap="round"/></symbol>
+<symbol id="st" viewBox="0 0 30 30"><path d="M15 2.5l3.6 7.6 8.3.9-6.2 5.6 1.8 8.2L15 20.6l-7.5 4.2 1.8-8.2-6.2-5.6 8.3-.9z"/></symbol>
+<symbol id="stars2" viewBox="0 0 150 30"><use href="#st" x="0" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="30" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="60" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/><use href="#st" x="90" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/><use href="#st" x="120" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/></symbol>
+<symbol id="stars3" viewBox="0 0 150 30"><use href="#st" x="0" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="30" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="60" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="90" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/><use href="#st" x="120" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/></symbol>
+<symbol id="stars4" viewBox="0 0 150 30"><use href="#st" x="0" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="30" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="60" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="90" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="120" width="30" height="30" fill="#E2DCEB" stroke="#A39BB8" stroke-width="2"/></symbol>
+<symbol id="stars5" viewBox="0 0 150 30"><use href="#st" x="0" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="30" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="60" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="90" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/><use href="#st" x="120" width="30" height="30" fill="#FFC93C" stroke="#231A3D" stroke-width="2.2"/></symbol>
+<symbol id="i-pow" viewBox="0 0 24 24"><path d="M12 2.5l1.9 4.6 4.5-2.1-1.6 4.8 4.9 1.2-4.2 2.9 3.1 3.9-5-.4.2 5-3.8-3.3-3.8 3.3.2-5-5 .4 3.1-3.9L2.3 11l4.9-1.2L5.6 5l4.5 2.1z"/></symbol>
+<symbol id="i-reach" viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M7 8l-4 4 4 4"/><path d="M17 8l4 4-4 4"/></symbol>
+<symbol id="i-speed" viewBox="0 0 24 24"><path d="M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z"/></symbol>
+</defs></svg>
+
+<div class="rays" style="position:absolute;left:-800px;top:-840px;width:2400px;height:2400px;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.32) 0deg 8deg,transparent 8deg 20deg)"></div>
+<svg viewBox="0 0 1280 720" width="1280" height="720" style="position:absolute;inset:0" aria-hidden="true">
+<path d="M0 500L120 430L230 470L350 400L470 460L600 410L740 470L870 400L1000 450L1130 400L1280 440V720H0Z" fill="#79C9EF"/>
+</svg>
+<svg class="drift" viewBox="0 0 160 80" width="200" height="100" style="position:absolute;left:-300px;top:80px;animation-duration:30s;animation-delay:-8s" aria-hidden="true"><use href="#cloud"/></svg>
+<svg class="drift" viewBox="0 0 160 80" width="150" height="75" style="position:absolute;left:-300px;top:250px;animation-duration:24s;animation-delay:-17s" aria-hidden="true"><use href="#cloud"/></svg>
+<svg viewBox="0 0 1280 200" width="1280" height="200" style="position:absolute;left:0;top:610px" aria-hidden="true">
+<path d="M-10 70Q30 18 80 44Q120 -2 180 30Q226 -10 280 26Q330 -8 386 28Q436 -4 490 30Q540 -6 596 26Q646 -8 700 28Q750 -4 806 30Q856 -8 910 26Q960 -4 1016 30Q1066 -8 1120 26Q1170 -2 1220 32Q1260 10 1292 42V210H-10Z" fill="#ffffff" stroke="#231A3D" stroke-width="5" stroke-linejoin="round"/>
+</svg>
+
+<div class="shake" style="position:absolute;inset:0">
+<div class="fade" style="position:absolute;inset:0">
+<div class="lines" style="position:absolute;left:230px;top:0;width:340px;height:500px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.9) 0 5px,transparent 5px 38px)"></div>
+<svg viewBox="0 0 400 260" width="460" height="299" style="position:absolute;left:170px;top:390px" aria-hidden="true"><use href="#isle"/></svg>
+<svg class="puffL" viewBox="0 0 160 80" width="150" height="75" style="position:absolute;left:190px;top:470px" aria-hidden="true"><use href="#cloud"/></svg>
+<svg class="puffR" viewBox="0 0 160 80" width="150" height="75" style="position:absolute;left:470px;top:470px" aria-hidden="true"><use href="#cloud"/></svg>
+<div class="drop" style="position:absolute;left:0;top:0;width:800px;height:720px">
+
+
+<div class="squash" style="position:absolute;left:195px;top:234px;width:400px;height:364px">
+<svg viewBox="0 0 220 200" width="400" height="364" role="img" aria-label="2Pのコマ(消しゴムの例)"><use href="#eraser"/><use class="eyeShut" href="#eyes-shut" x="18" y="92" width="62" height="34"/><use class="eyeOpen" href="#eyes-r" x="18" y="92" width="62" height="34"/></svg>
+</div>
+
+</div>
+<div class="mp dosun" style="position:absolute;left:520px;top:548px;padding:6px 16px;background:#FFF8EC;border:5px solid #231A3D;border-radius:14px;font-size:34px">ドスン!</div>
+<div class="mp pachi" style="position:absolute;left:520px;top:210px;padding:8px 18px;background:#FFC93C;border:5px solid #231A3D;border-radius:18px;box-shadow:0 5px 0 #231A3D;font-size:40px">パチッ!</div>
+
+<div class="bannerIn" style="position:absolute;left:720px;top:48px;width:540px;height:170px">
+<svg viewBox="0 0 540 170" width="540" height="170" style="position:absolute;inset:0" aria-hidden="true"><path d="M6 10H534L490 85L534 160H6Z" fill="#E8284F" stroke="#231A3D" stroke-width="7" stroke-linejoin="round"/></svg>
+<div style="position:absolute;left:34px;top:0;height:170px;display:flex;align-items:center;gap:18px">
+<span class="mp ol" style="font-size:112px;color:#ffffff">2P</span>
+<span class="mp ol-m" style="font-size:44px;color:#FFC93C">とうじょう!</span>
+</div>
+</div>
+
+<div style="position:absolute;left:738px;top:270px;display:flex;gap:18px">
+<div class="col badgeIn"><div class="badge" style="border:8px solid #E8284F"><svg viewBox="0 0 24 24" width="56" height="56" fill="#231A3D" aria-hidden="true"><use href="#i-pow"/></svg></div><svg viewBox="0 0 150 30" width="140" height="28" role="img" aria-label="パワー"><use href="#stars2"/></svg><div class="lbl">パワー</div></div>
+<div class="col badgeIn" style="animation-delay:.25s"><div class="badge" style="border:8px solid #E8284F"><svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="#231A3D" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-reach"/></svg></div><svg viewBox="0 0 150 30" width="140" height="28" role="img" aria-label="リーチ"><use href="#stars4"/></svg><div class="lbl">リーチ</div></div>
+<div class="col badgeIn" style="animation-delay:.5s"><div class="badge" style="border:8px solid #E8284F"><svg viewBox="0 0 24 24" width="56" height="56" fill="#231A3D" aria-hidden="true"><use href="#i-speed"/></svg></div><svg viewBox="0 0 150 30" width="140" height="28" role="img" aria-label="スピード"><use href="#stars5"/></svg><div class="lbl">スピード</div></div>
+</div>
+
+<div style="position:absolute;left:720px;top:500px;width:540px;display:flex;justify-content:center">
+<div class="mp ribbonIn" style="padding:18px 48px 22px;background:#FFC93C;border:7px solid #231A3D;border-radius:20px;box-shadow:0 9px 0 #231A3D;font-size:54px;white-space:nowrap">スピードタイプ!</div>
+</div>
+</div>
+</div>
+
+<div class="flash" style="position:absolute;inset:0;background:#ffffff"></div>
+</div>
+</div>
+</section>
+</body>
+</html>

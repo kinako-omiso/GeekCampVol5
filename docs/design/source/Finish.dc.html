@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>決着</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&amp;family=M+PLUS+Rounded+1c:wght@500;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#8FDBFF}
+.mp{font-family:'Mochiy Pop One',sans-serif;line-height:1.05}
+.ol{-webkit-text-stroke:18px #231A3D;paint-order:stroke fill}
+.ol-s{-webkit-text-stroke:6px #231A3D;paint-order:stroke fill}
+@keyframes push{0%{transform:scale(1.02)}100%{transform:scale(1.1)}}
+.push{animation:push 3.5s linear infinite}
+@keyframes jitter{0%{transform:rotate(0) scale(1)}50%{transform:rotate(1.6deg) scale(1.03)}100%{transform:rotate(0) scale(1)}}
+.jitter{animation:jitter .22s linear infinite}
+@keyframes linesIn{0%{opacity:0}4%,93%{opacity:1}100%{opacity:0}}
+.linesIn{animation:linesIn 3.5s linear infinite}
+@keyframes flash{0%{opacity:.95}9%,100%{opacity:0}}
+.flash{animation:flash 3.5s ease-out infinite;pointer-events:none}
+@keyframes barT{0%{transform:translateY(-100%)}8%,93%{transform:translateY(0)}100%{transform:translateY(-100%)}}
+.barT{animation:barT 3.5s ease-out infinite}
+@keyframes barB{0%{transform:translateY(100%)}8%,93%{transform:translateY(0)}100%{transform:translateY(100%)}}
+.barB{animation:barB 3.5s ease-out infinite}
+@keyframes burstIn{0%,4%{transform:scale(0) rotate(-20deg);opacity:0}12%{transform:scale(1.12) rotate(0);opacity:1}16%,93%{transform:scale(1) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(6deg);opacity:0}}
+.burstIn{animation:burstIn 3.5s ease-out infinite}
+@keyframes slam{0%,5%{transform:scale(3) rotate(-6deg);opacity:0}12%{transform:scale(.88) rotate(-6deg);opacity:1}15%{transform:scale(1.07) rotate(-6deg)}18%{transform:scale(1) rotate(-6deg)}19%{transform:translate(-10px,6px) rotate(-6deg)}20%{transform:translate(9px,-6px) rotate(-6deg)}21%{transform:translate(-5px,3px) rotate(-6deg)}22%,93%{transform:translate(0,0) rotate(-6deg);opacity:1}100%{transform:translate(0,0) rotate(-6deg);opacity:0}}
+.slam{animation:slam 3.5s ease-out infinite}
+@keyframes fly{0%,6%{transform:translate(0,0) rotate(0) scale(1);opacity:1}60%{transform:translate(330px,-330px) rotate(720deg) scale(.2);opacity:1}61%,100%{transform:translate(330px,-330px) scale(.2);opacity:0}}
+.fly{animation:fly 3.5s cubic-bezier(.2,.6,.4,1) infinite}
+@keyframes kiran{0%,58%{transform:scale(0) rotate(0);opacity:0}64%{transform:scale(1.4) rotate(45deg);opacity:1}70%,86%{transform:scale(1) rotate(90deg);opacity:1}93%,100%{transform:scale(0) rotate(120deg);opacity:0}}
+.kiran{animation:kiran 3.5s ease-out infinite}
+@keyframes kiranT{0%,62%{opacity:0;transform:translateY(8px)}66%,88%{opacity:1;transform:translateY(0)}93%,100%{opacity:0}}
+.kiranT{animation:kiranT 3.5s ease-out infinite}
+@keyframes fall{0%,6%{transform:translate(0,0) rotate(0);opacity:1}28%{transform:translate(230px,10px) rotate(25deg)}60%{transform:translate(290px,360px) rotate(80deg);opacity:1}61%,100%{transform:translate(290px,360px) rotate(80deg);opacity:0}}
+.fall{animation:fall 3.5s cubic-bezier(.4,0,.8,.6) infinite}
+@keyframes poff{0%,58%{transform:scale(0);opacity:0}63%{transform:scale(1.2);opacity:1}76%{transform:scale(1);opacity:1}86%,100%{transform:scale(1.3);opacity:0}}
+.poff{animation:poff 3.5s ease-out infinite}
+@keyframes still{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+.still{animation:still .3s linear infinite}
+</style>
+</helmet>
+<div style="width:1280px;height:720px;position:relative;overflow:hidden;background:#8FDBFF;font-family:'M PLUS Rounded 1c',sans-serif;color:#231A3D">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<path id="mugP" d="M40 40H140V154Q140 170 124 170H56Q40 170 40 154ZM140 66H158Q182 66 182 96V112Q182 142 158 142H140V124H154Q164 124 164 112V96Q164 84 154 84H140Z"/>
+<symbol id="mug" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#mugP" transform="translate(18 -14)"/><use href="#mugP" transform="translate(9 -7)"/><use href="#mugP"/></g><use href="#mugP" transform="translate(18 -14)" fill="#77819F"/><use href="#mugP" transform="translate(15 -11.7)" fill="#828CAA"/><use href="#mugP" transform="translate(12 -9.3)" fill="#8D97B4"/><use href="#mugP" transform="translate(9 -7)" fill="#98A2BF"/><use href="#mugP" transform="translate(6 -4.7)" fill="#A3ACC9"/><use href="#mugP" transform="translate(3 -2.3)" fill="#AEB7D3"/><use href="#mugP" fill="#F4F6FC" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="48" y="124" width="9" height="32" rx="4.5" fill="#ffffff"/></symbol>
+<rect id="erB" x="16" y="78" width="170" height="72" rx="12"/>
+<rect id="erS" x="80" y="72" width="112" height="84" rx="6"/>
+<symbol id="eraser" viewBox="0 0 220 200"><g stroke="#231A3D" stroke-width="10" stroke-linejoin="round"><use href="#erB" transform="translate(18 -16)"/><use href="#erS" transform="translate(18 -16)"/><use href="#erB"/><use href="#erS"/></g><use href="#erB" transform="translate(18 -16)" fill="#A3AABD"/><use href="#erS" transform="translate(18 -16)" fill="#646D85"/><use href="#erB" transform="translate(12 -10.7)" fill="#AFB6C7"/><use href="#erS" transform="translate(12 -10.7)" fill="#707991"/><use href="#erB" transform="translate(6 -5.3)" fill="#BBC2D1"/><use href="#erS" transform="translate(6 -5.3)" fill="#7C859D"/><use href="#erB" fill="#F7F8FB" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><use href="#erS" fill="#A9B2C6" stroke="#231A3D" stroke-width="4" stroke-linejoin="round"/><rect x="82" y="102" width="108" height="16" fill="#3B4257"/></symbol>
+<symbol id="eyes-r" viewBox="0 0 80 44"><g fill="#ffffff" stroke="#231A3D" stroke-width="4"><ellipse cx="20" cy="24" rx="13" ry="16"/><ellipse cx="60" cy="24" rx="13" ry="16"/></g><g fill="#231A3D"><circle cx="25" cy="25" r="7.5"/><circle cx="65" cy="25" r="7.5"/></g><g fill="#ffffff"><circle cx="27.5" cy="21.5" r="2.6"/><circle cx="67.5" cy="21.5" r="2.6"/></g></symbol>
+<symbol id="eyes-l" viewBox="0 0 80 44"><g fill="#ffffff" stroke="#231A3D" stroke-width="4"><ellipse cx="20" cy="24" rx="13" ry="16"/><ellipse cx="60" cy="24" rx="13" ry="16"/></g><g fill="#231A3D"><circle cx="15" cy="25" r="7.5"/><circle cx="55" cy="25" r="7.5"/></g><g fill="#ffffff"><circle cx="17.5" cy="21.5" r="2.6"/><circle cx="57.5" cy="21.5" r="2.6"/></g></symbol>
+<symbol id="eyes-angry-r" viewBox="0 0 80 44"><use href="#eyes-r"/><g stroke="#231A3D" stroke-width="5.5" stroke-linecap="round"><path d="M4 4L31 13"/><path d="M76 4L49 13"/></g></symbol>
+<symbol id="eyes-hurt" viewBox="0 0 80 44"><g fill="none" stroke="#231A3D" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13L28 24L10 35"/><path d="M70 13L52 24L70 35"/></g></symbol>
+<symbol id="eyes-dizzy" viewBox="0 0 80 44"><g fill="#ffffff" stroke="#231A3D" stroke-width="4"><circle cx="20" cy="24" r="14"/><circle cx="60" cy="24" r="14"/></g><g fill="none" stroke="#231A3D" stroke-width="3.2" stroke-linecap="round"><path d="M13 24a7 7 0 1 1 7 7a4 4 0 1 1 3-6"/><path d="M53 24a7 7 0 1 1 7 7a4 4 0 1 1 3-6"/></g></symbol>
+<symbol id="cloud" viewBox="0 0 160 80"><path d="M24 74C8 74 3 54 17 47C13 29 35 20 48 30C54 11 85 7 95 26C107 16 129 22 129 41C147 41 156 62 141 74Z" fill="#ffffff" stroke="#231A3D" stroke-width="5" stroke-linejoin="round"/><path d="M28 66C60 70 110 70 136 64" fill="none" stroke="#DCEFFC" stroke-width="7" stroke-linecap="round"/></symbol>
+<symbol id="burst" viewBox="-120 -120 240 240"><polygon points="0,-100 14.2,-53.1 42,-72.7 38.9,-38.9 93.5,-54 53.1,-14.2 90,0 53.1,14.2 88.3,51 38.9,38.9 43,74.5 14.2,53.1 0,110 -14.2,53.1 -44,76.2 -38.9,38.9 -84.9,49 -53.1,14.2 -82,0 -53.1,-14.2 -91.8,-53 -38.9,-38.9 -46,-79.7 -14.2,-53.1" fill="#FFC93C" stroke="#231A3D" stroke-width="6" stroke-linejoin="round"/><polygon transform="scale(.6)" points="0,-100 14.2,-53.1 42,-72.7 38.9,-38.9 93.5,-54 53.1,-14.2 90,0 53.1,14.2 88.3,51 38.9,38.9 43,74.5 14.2,53.1 0,110 -14.2,53.1 -44,76.2 -38.9,38.9 -84.9,49 -53.1,14.2 -82,0 -53.1,-14.2 -91.8,-53 -38.9,-38.9 -46,-79.7 -14.2,-53.1" fill="#FFE68A"/></symbol>
+<symbol id="spark" viewBox="0 0 40 40"><path d="M20 1l4.5 14.5L39 20l-14.5 4.5L20 39l-4.5-14.5L1 20l14.5-4.5z"/></symbol>
+</defs></svg>
+
+<div class="push" style="position:absolute;inset:0">
+<svg viewBox="0 0 1280 720" width="1280" height="720" style="position:absolute;inset:0" aria-hidden="true">
+<rect width="1280" height="720" fill="#8FDBFF"/>
+<path d="M-10 262Q40 222 100 244Q150 208 220 236Q280 204 350 234Q420 202 490 232Q560 202 630 230Q700 202 770 232Q840 204 910 234Q980 206 1050 236Q1120 208 1190 238Q1240 220 1292 244V730H-10Z" fill="#ffffff" stroke="#231A3D" stroke-width="5" stroke-linejoin="round"/>
+<ellipse cx="620" cy="520" rx="470" ry="290" fill="#C08F68" stroke="#231A3D" stroke-width="6"/>
+<ellipse cx="620" cy="486" rx="470" ry="290" fill="#6BD66B" stroke="#231A3D" stroke-width="6"/>
+<g fill="none" stroke="#7DDE7D" stroke-width="18"><ellipse cx="620" cy="486" rx="330" ry="204"/><ellipse cx="620" cy="486" rx="190" ry="118"/></g>
+<ellipse cx="520" cy="534" rx="100" ry="62" fill="rgba(47,107,255,.25)" stroke="#2F6BFF" stroke-width="12"/>
+<svg x="410" y="370" width="220" height="200" viewBox="0 0 220 200"><use href="#mug"/><use href="#eyes-angry-r" x="50" y="70" width="80" height="44"/></svg>
+<ellipse cx="820" cy="470" rx="100" ry="62" fill="none" stroke="#E8284F" stroke-width="12" stroke-dasharray="16 12"/>
+</svg>
+</div>
+
+<sc-if value="{{isKO}}" hint-placeholder-val="{{true}}">
+<div class="fly" style="position:absolute;left:720px;top:318px;width:210px;height:191px">
+<svg viewBox="0 0 220 200" width="210" height="191" role="img" aria-label="2Pのコマが とんでいく"><use href="#eraser"/><use href="#eyes-dizzy" x="18" y="92" width="62" height="34"/></svg>
+</div>
+<svg class="kiran" viewBox="0 0 40 40" width="90" height="90" style="position:absolute;left:1090px;top:22px" aria-hidden="true"><use href="#spark" fill="#FFE27A" stroke="#231A3D" stroke-width="2.5"/></svg>
+<div class="mp kiranT" style="position:absolute;left:1000px;top:112px;font-size:30px;color:#ffffff;-webkit-text-stroke:6px #231A3D;paint-order:stroke fill">キラーン!</div>
+</sc-if>
+<sc-if value="{{isOut}}" hint-placeholder-val="{{false}}">
+<div class="fall" style="position:absolute;left:720px;top:318px;width:210px;height:191px">
+<svg viewBox="0 0 220 200" width="210" height="191" role="img" aria-label="2Pのコマが 山から おっこちる"><use href="#eraser"/><use href="#eyes-hurt" x="18" y="92" width="62" height="34"/></svg>
+</div>
+<div class="poff" style="position:absolute;left:960px;top:600px;width:240px;height:120px">
+<svg viewBox="0 0 160 80" width="240" height="120" style="position:absolute;inset:0" aria-hidden="true"><use href="#cloud"/></svg>
+<div class="mp" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;padding-top:10px">ポフッ</div>
+</div>
+</sc-if>
+<sc-if value="{{isTime}}" hint-placeholder-val="{{false}}">
+<div class="still" style="position:absolute;left:720px;top:318px;width:210px;height:191px">
+<svg viewBox="0 0 220 200" width="210" height="191" role="img" aria-label="2Pのコマ。とまっている"><use href="#eraser"/><use href="#eyes-l" x="18" y="92" width="62" height="34"/></svg>
+</div>
+</sc-if>
+
+<div class="linesIn" style="position:absolute;inset:0">
+<div class="jitter" style="position:absolute;left:-760px;top:-1100px;width:2800px;height:2800px;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.75) 0deg 1.2deg,transparent 1.2deg 8deg);-webkit-mask-image:radial-gradient(circle,transparent 0 280px,#000 560px);mask-image:radial-gradient(circle,transparent 0 280px,#000 560px)"></div>
+</div>
+
+<div style="position:absolute;left:0;right:0;top:40px;height:320px;display:flex;align-items:center;justify-content:center">
+<svg class="burstIn" viewBox="-120 -120 240 240" width="560" height="360" style="position:absolute" preserveAspectRatio="none" aria-hidden="true"><use href="#burst" x="-120" y="-120" width="240" height="240"/></svg>
+<div class="mp ol slam" style="position:relative;font-size:{{size}};color:#ffffff;text-shadow:0 14px 0 #231A3D;white-space:nowrap">{{text}}</div>
+</div>
+
+<div class="barT" style="position:absolute;left:0;top:0;width:1280px;height:64px;background:#231A3D"></div>
+<div class="barB" style="position:absolute;left:0;bottom:0;width:1280px;height:64px;background:#231A3D"></div>
+<div class="flash" style="position:absolute;inset:0;background:#ffffff"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"finish":{"editor":"enum","options":["KO!","おっこちた!","タイムアップ!"],"default":"KO!"},"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const f = this.props.finish ?? 'KO!';
+    const ko = f === 'KO!';
+    const out = f === 'おっこちた!';
+    return {
+      text: f,
+      size: ko ? '220px' : out ? '124px' : '112px',
+      isKO: ko,
+      isOut: out,
+      isTime: !ko && !out
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Battle.dc.html": {
+      "h": 720,
+      "title": "対戦",
+      "w": 1280,
+      "x": 0,
+      "y": 1120
+    },
+    "Entrance.dc.html": {
+      "h": 720,
+      "title": "登場演出(1人ずつ)",
+      "w": 1280,
+      "x": 4080,
+      "y": 0
+    },
+    "Finish.dc.html": {
+      "h": 720,
+      "title": "決着",
+      "w": 1280,
+      "x": 2720,
+      "y": 1120
+    },
+    "Main.dc.html": {
+      "h": 720,
+      "title": "ロビー",
+      "w": 1280,
+      "x": 0,
+      "y": 0
+    },
+    "Orient.dc.html": {
+      "h": 720,
+      "title": "向き調整",
+      "w": 1280,
+      "x": 2720,
+      "y": 0
+    },
+    "Pause.dc.html": {
+      "h": 720,
+      "title": "切断・一時停止",
+      "w": 1280,
+      "x": 1360,
+      "y": 1120
+    },
+    "PhoneBattle.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ:対戦",
+      "w": 844,
+      "x": 2772,
+      "y": 2240
+    },
+    "PhoneBattle2P.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ2P:対戦",
+      "w": 844,
+      "x": 2772,
+      "y": 2750
+    },
+    "PhoneConnect.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ:接続",
+      "w": 844,
+      "x": 0,
+      "y": 2240
+    },
+    "PhoneConnect2P.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ2P:接続",
+      "w": 844,
+      "x": 0,
+      "y": 2750
+    },
+    "PhoneOrient.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ:向き調整",
+      "w": 844,
+      "x": 1848,
+      "y": 2240
+    },
+    "PhoneOrient2P.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ2P:向き調整",
+      "w": 844,
+      "x": 1848,
+      "y": 2750
+    },
+    "PhoneResult.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ:けっか(新)",
+      "w": 844,
+      "x": 3696,
+      "y": 2240
+    },
+    "PhoneResult2P.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ2P:けっか(新)",
+      "w": 844,
+      "x": 3696,
+      "y": 2750
+    },
+    "PhoneScan.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ:スキャン",
+      "w": 844,
+      "x": 924,
+      "y": 2240
+    },
+    "PhoneScan2P.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ2P:スキャン",
+      "w": 844,
+      "x": 924,
+      "y": 2750
+    },
+    "Scan.dc.html": {
+      "h": 720,
+      "title": "スキャン進捗",
+      "w": 1280,
+      "x": 1360,
+      "y": 0
+    },
+    "Style.dc.html": {
+      "h": 1000,
+      "title": "スタイル",
+      "w": 1280,
+      "x": 0,
+      "y": 3260
+    },
+    "TimeUp.dc.html": {
+      "h": 720,
+      "title": "時間切れ(山くらべ)",
+      "w": 1280,
+      "x": 4080,
+      "y": 1120
+    },
+    "VS.dc.html": {
+      "h": 720,
+      "title": "VS → 3・2・1・GO!",
+      "w": 1280,
+      "x": 5440,
+      "y": 0
+    },
+    "Win.dc.html": {
+      "h": 720,
+      "title": "勝利・つぎの選択",
+      "w": 1280,
+      "x": 5440,
+      "y": 1120
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-27T15:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "row1": {
+      "kind": "title1",
+      "maxW": 6720,
+      "text": "① あつまる → スキャン → とうじょう",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "row2": {
+      "kind": "title1",
+      "maxW": 6720,
+      "text": "② バトル → けっちゃく / 時間切れ → かち!",
+      "w": 240,
+      "x": 0,
+      "y": 820
+    },
+    "row3": {
+      "kind": "title1",
+      "maxW": 4540,
+      "text": "スマホ(よこもち) 上:1P / 下:2P",
+      "w": 240,
+      "x": 0,
+      "y": 1940
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Scan.dc.html",
+    "Orient.dc.html",
+    "Entrance.dc.html",
+    "VS.dc.html",
+    "Battle.dc.html",
+    "Pause.dc.html",
+    "Finish.dc.html",
+    "TimeUp.dc.html",
+    "Win.dc.html",
+    "PhoneConnect.dc.html",
+    "PhoneScan.dc.html",
+    "PhoneOrient.dc.html",
+    "PhoneBattle.dc.html",
+    "PhoneResult.dc.html",
+    "PhoneConnect2P.dc.html",
+    "PhoneScan2P.dc.html",
+    "PhoneOrient2P.dc.html",
+    "PhoneBattle2P.dc.html",
+    "PhoneResult2P.dc.html",
+    "Style.dc.html"
+  ],
+  "pages": [],
+  "title": "Scannee's Summit UI/UX 案2"
+}
