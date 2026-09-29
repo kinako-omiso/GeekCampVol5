@@ -158,6 +158,38 @@
       "w": 1280,
       "x": 5440,
       "y": 1120
+    },
+    "PhoneScanPortrait.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "スマホ:スキャン(縦)",
+      "w": 390,
+      "x": 0,
+      "y": 4380
+    },
+    "PhonePreset.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ:おてほん(新)",
+      "w": 844,
+      "x": 4620,
+      "y": 2240
+    },
+    "PhonePreset2P.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "スマホ2P:おてほん(新)",
+      "w": 844,
+      "x": 4620,
+      "y": 2750
+    },
+    "PhonePresetPortrait.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "スマホ:おてほん(縦)",
+      "w": 390,
+      "x": 470,
+      "y": 4380
     }
   },
   "createdOnFiles": {
@@ -187,7 +219,7 @@
     },
     "row3": {
       "kind": "title1",
-      "maxW": 4540,
+      "maxW": 5464,
       "text": "スマホ(よこもち) 上:1P / 下:2P",
       "w": 240,
       "x": 0,
@@ -215,7 +247,11 @@
     "PhoneOrient2P.dc.html",
     "PhoneBattle2P.dc.html",
     "PhoneResult2P.dc.html",
-    "Style.dc.html"
+    "Style.dc.html",
+    "PhoneScanPortrait.dc.html",
+    "PhonePreset.dc.html",
+    "PhonePreset2P.dc.html",
+    "PhonePresetPortrait.dc.html"
   ],
   "pages": [],
   "title": "Scannee's Summit UI/UX 案2"

@@ -48,9 +48,10 @@ export const timing = {
   bWindup: 0.3, // spec: 体当たり中の予備動作(後ろに引く)
   bCooldown: 3, // spec
   aMinInterval: 0.4, // spec
-  shrinkWarning: 3, // spec: 「くもが くるよ!」の予告
+  shrinkWarning: 3, // spec: 縮小の予告(「まんなかへ にげて!」)
   entrancePerPlayer: 2.5, // draft
   countdownStep: 0.8, // draft: 3・2・1・GO! の1コマ
+  finishImpactFreeze: 0.7, // draft: 決着の最後の一撃で止める(暗転ストップ)
   finishHold: 2, // draft: 決着の文字を見せる時間
 } as const;
 
