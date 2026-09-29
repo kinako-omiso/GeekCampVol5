@@ -28,6 +28,7 @@
 .pad__bar-text { font-size: calc(var(--u) * 19); }
 .pad__signal { margin-left: auto; width: calc(var(--u) * 26); height: calc(var(--u) * 26); }
 .pad__signal svg { stroke-width: 2.8; }
+.pad__signal.is-disconnected { opacity: .3; filter: grayscale(1); }
 
 /* ---- A / B ---- */
 .pad__buttons {
