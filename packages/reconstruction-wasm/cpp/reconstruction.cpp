@@ -119,11 +119,11 @@ bool validCamera(const float* K,const float* R){
 }
 extern "C" {
 int recon_build_options(const uint8_t* masks,const int* offsets,const int* widths,const int* heights,const float* cameras,int count,int requestedSide,int smooth,int adaptive){
-  side=requestedSide;occupied=0;clipped=0;grid.clear();values.clear();pos.clear();normals.clear();ind.clear();
+  side=COARSE;occupied=0;clipped=0;grid.clear();values.clear();pos.clear();normals.clear();ind.clear();
   normalization={0,0,0,1};
   for(int axis=0;axis<3;++axis){bounds[axis][0]=-HALF;bounds[axis][1]=HALF;}
   if(!masks||!offsets||!widths||!heights||!cameras||count<4||count>8||
-     (side!=96&&side!=128&&side!=160)||(smooth!=0&&smooth!=1)||(adaptive!=0&&adaptive!=1))return 1;
+     (requestedSide!=COARSE)||(smooth!=0&&smooth!=1)||(adaptive!=0&&adaptive!=1))return 1;
   std::vector<View> views;
   for(int v=0;v<count;++v){
     int w=widths[v],h=heights[v];

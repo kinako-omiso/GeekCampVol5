@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { createFixedCamera, VOXEL_SIDE } from '@gikcamp/reconstruction-wasm'
-import type { SilhouetteMask, VisualHullOptions, VisualHullOutput, VoxelSide } from '@gikcamp/reconstruction-wasm'
+import type { SilhouetteMask, VisualHullOptions, VisualHullOutput } from '@gikcamp/reconstruction-wasm'
 import type { GeometryResult } from '@gikcamp/geometry-wasm'
 import { loadPhoto } from '../../features/capture/pipeline/photoSegmenter'
 import type { SelectionStroke } from '../../features/capture/pipeline/photoSegmenter'
@@ -96,7 +96,7 @@ export default function VisualHullPage() {
   const [baseline, setBaseline] = useState<{ output: VisualHullOutput; options: Required<VisualHullOptions>; timing: typeof generationTiming } | null>(null)
   const [outputOptions, setOutputOptions] = useState<Required<VisualHullOptions> | null>(null)
   const [geometry, setGeometry] = useState<GeometryResult | null>(null)
-  const [options, setOptions] = useState<Required<VisualHullOptions>>({ voxelSide: VOXEL_SIDE, surface: 'binary', adaptiveBounds: true })
+  const [options, setOptions] = useState<Required<VisualHullOptions>>({ surface: 'binary', adaptiveBounds: true })
   const [slice, setSlice] = useState(Math.floor(VOXEL_SIDE / 2))
   const [drawTick, setDrawTick] = useState(0)
   const [benchResult, setBenchResult] = useState('')
@@ -483,7 +483,7 @@ export default function VisualHullPage() {
       .map((frame) => ({ mask: frame.mask, camera: createFixedCamera(frame.mask.width, frame.mask.height, frame.yaw) }))
     if (output && outputOptions) setBaseline({ output, options: outputOptions, timing: generationTiming })
     setBusy(true); setError(''); setOutput(null); setGeometry(null); setGenerationTiming(null)
-    setStatus(`${options.voxelSide}³ Voxelの再構成と形状解析を実行しています。`)
+    setStatus('96³ Voxelの再構成と形状解析を実行しています。')
     reconstructionWorkerRef.current?.terminate()
     const worker = new Worker(new URL('../../features/analyze/reconstruction/visualHull.worker.ts', import.meta.url), { type: 'module' })
     reconstructionWorkerRef.current = worker
@@ -547,7 +547,7 @@ export default function VisualHullPage() {
         !Array.isArray(mesh.normalization) || mesh.normalization.length !== 4 ||
         mesh.positions.length % 3 !== 0 || mesh.indices.length % 3 !== 0 ||
         mesh.normals.length !== mesh.positions.length ||
-        ![96, 128, 160].includes(metrics.voxelSide)) throw new Error('モデルのデータが正しくありません。')
+        metrics.voxelSide !== VOXEL_SIDE) throw new Error('モデルのデータが正しくありません。')
       const restored = initialFrames()
       const occupiedSlots = new Set<number>()
       for (const viewValue of bundle.views) {
@@ -610,8 +610,10 @@ export default function VisualHullPage() {
       }
       importedOutputRef.current = true
       setFrames(restored); setOutput(loadedOutput); setBaseline(null); setGeometry(restoredGeometry)
-      setOptions(savedOptions?.voxelSide ? savedOptions : { voxelSide: 96, surface: 'binary', adaptiveBounds: true })
-      setOutputOptions(savedOptions ?? null)
+      setOptions({ surface: savedOptions?.surface === 'interpolated' ? 'interpolated' : 'binary',
+        adaptiveBounds: savedOptions?.adaptiveBounds !== false })
+      setOutputOptions(savedOptions ? { surface: savedOptions.surface === 'interpolated' ? 'interpolated' : 'binary',
+        adaptiveBounds: savedOptions.adaptiveBounds !== false } : null)
       setGenerationTiming(bundle.generationTiming as typeof generationTiming ?? null)
       setReferencePoint(bundle.referencePoint as { x: number; y: number } | null ?? null)
       setSlice(Math.floor(metrics.voxelSide / 2)); setActive(0); setBatchStage('review')
@@ -651,7 +653,6 @@ export default function VisualHullPage() {
       <button type="button" disabled={busy || batchStage === 'auto'} onClick={() => { void compareWorkerCounts() }}>1/2 Worker比較</button></>}
     </section>
     {batchStage !== 'front' && batchStage !== 'choose-front' && <section className="visual-hull-toolbar">
-      <label>Voxel <select value={options.voxelSide} disabled={busy || batchStage === 'auto'} onChange={(event) => setOptions({ ...options, voxelSide: Number(event.currentTarget.value) as VoxelSide })}><option value="96">96³</option><option value="128">128³</option><option value="160">160³</option></select></label>
       <label>面 <select value={options.surface} disabled={busy || batchStage === 'auto'} onChange={(event) => setOptions({ ...options, surface: event.currentTarget.value as 'binary' | 'interpolated' })}><option value="interpolated">輪郭補間</option><option value="binary">二値中点</option></select></label>
       <label><input type="checkbox" checked={options.adaptiveBounds} disabled={busy || batchStage === 'auto'} onChange={(event) => setOptions({ ...options, adaptiveBounds: event.currentTarget.checked })} />占有範囲へ計算領域を合わせる</label>
       <button type="button" className="primary" disabled={busy || batchStage === 'auto'} onClick={generate}>Visual Hullを生成</button>
@@ -672,8 +673,8 @@ export default function VisualHullPage() {
         {comparisons[active] && <p>Maskと再投影の一致度 IoU {comparisons[active]!.iou.toFixed(3)}</p>}
       </section>
       {batchStage !== 'front' && <section className="visual-hull-panel"><h2>3Dモデルと解析結果</h2>
-        {baseline && <div className="visual-hull-comparison"><h3>比較前 · {baseline.options.voxelSide}³ / {baseline.options.surface === 'binary' ? '二値中点' : '輪郭補間'}</h3><ModelPreview reconstruction={baseline.output.reconstruction} onError={setError} onFirstFrame={noOp} /><p>再構成 {baseline.output.metrics.carvingAndMeshMs.toFixed(0)} ms / 頂点 {baseline.output.metrics.vertexCount.toLocaleString()} / 三角形 {baseline.output.metrics.triangleCount.toLocaleString()} / Mask確定後から表示 {baseline.timing?.totalMs.toFixed(0) ?? '未測定'} ms</p></div>}
-        {output ? <div className="visual-hull-comparison"><h3>現在 · {outputOptions?.voxelSide}³ / {outputOptions?.surface === 'binary' ? '二値中点' : '輪郭補間'}</h3><ModelPreview reconstruction={output.reconstruction} onError={setError} onFirstFrame={onFirstFrame} /></div> : <div className="visual-hull-placeholder">4〜8方向のMaskをそろえて生成してください。</div>}
+        {baseline && <div className="visual-hull-comparison"><h3>比較前 · {baseline.output.metrics.voxelSide}³ / {baseline.options.surface === 'binary' ? '二値中点' : '輪郭補間'}</h3><ModelPreview reconstruction={baseline.output.reconstruction} onError={setError} onFirstFrame={noOp} /><p>再構成 {baseline.output.metrics.carvingAndMeshMs.toFixed(0)} ms / 頂点 {baseline.output.metrics.vertexCount.toLocaleString()} / 三角形 {baseline.output.metrics.triangleCount.toLocaleString()} / Mask確定後から表示 {baseline.timing?.totalMs.toFixed(0) ?? '未測定'} ms</p></div>}
+        {output ? <div className="visual-hull-comparison"><h3>現在 · {output.metrics.voxelSide}³ / {outputOptions?.surface === 'binary' ? '二値中点' : '輪郭補間'}</h3><ModelPreview reconstruction={output.reconstruction} onError={setError} onFirstFrame={onFirstFrame} /></div> : <div className="visual-hull-placeholder">4〜8方向のMaskをそろえて生成してください。</div>}
         {output && <><p>占有Voxel {output.metrics.voxelCount.toLocaleString()} / 頂点 {output.metrics.vertexCount.toLocaleString()} / 三角形 {output.metrics.triangleCount.toLocaleString()} / 再構成本体 {output.metrics.carvingAndMeshMs.toFixed(0)} ms / 面向き補正 {output.metrics.windingCorrections ?? 0}面 / 境界修復 {output.metrics.sealedFaces ?? 0}面{output.metrics.clipped ? ' / 領域端への接触あり' : ''}</p>
           <label>Voxel断面 z={slice} <input type="range" min="0" max={output.metrics.voxelSide - 1} value={slice} onChange={(event) => setSlice(Number(event.currentTarget.value))} /></label>
           <canvas ref={sliceRef} className="visual-hull-slice" aria-label="Voxel断面" /></>}

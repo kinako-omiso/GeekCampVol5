@@ -11,9 +11,7 @@ export type ReconstructionCamera = {
 }
 export type ReconstructionView = { mask: SilhouetteMask; camera: ReconstructionCamera }
 export type ReconstructionResult = { positions: Float32Array; indices: Uint32Array; normals: Float32Array }
-export type VoxelSide = 96 | 128 | 160
 export type VisualHullOptions = {
-  voxelSide?: VoxelSide
   surface?: 'binary' | 'interpolated'
   adaptiveBounds?: boolean
 }
@@ -23,7 +21,7 @@ export type VisualHullOutput = {
   /** 正規化メッシュから撮影時の世界座標へ戻すための [中心X, 底面Y, 中心Z, 縮尺]。 */
   normalization: [number, number, number, number]
   metrics: {
-    voxelSide: VoxelSide
+    voxelSide: 96
     voxelCount: number
     vertexCount: number
     triangleCount: number
@@ -33,8 +31,7 @@ export type VisualHullOutput = {
     sealedFaces: number
   }
 }
-export const DEFAULT_VOXEL_SIDE: VoxelSide = 96
-export const VOXEL_SIDE = DEFAULT_VOXEL_SIDE
+export const VOXEL_SIDE = 96 as const
 
 let modulePromise: ReturnType<typeof createModule> | undefined
 function getModule() {
@@ -60,8 +57,6 @@ export async function reconstructVisualHull(
   views: readonly ReconstructionView[], options: VisualHullOptions = {},
 ): Promise<VisualHullOutput> {
   if (views.length < 4 || views.length > 8) throw new Error('Maskは4～8方向分を指定してください。')
-  const voxelSide = options.voxelSide ?? DEFAULT_VOXEL_SIDE
-  if (voxelSide !== 96 && voxelSide !== 128 && voxelSide !== 160) throw new Error('Voxel解像度が正しくありません。')
   const smooth = options.surface === 'interpolated' ? 1 : 0
   const adaptive = options.adaptiveBounds === false ? 0 : 1
   let bytes = 0
@@ -96,13 +91,14 @@ export async function reconstructVisualHull(
     })
     const started = performance.now()
     const status = module._recon_build_options(pointers[0], pointers[1], pointers[2], pointers[3], pointers[4],
-      count, voxelSide, smooth, adaptive)
+      count, VOXEL_SIDE, smooth, adaptive)
     if (status !== 0) throw new Error(status === 2 ? '交差する領域がありません。写真とCamera Poseを確認してください。' :
       status === 3 ? 'メッシュが複雑すぎるか、生成できませんでした。' : '入力またはCamera Poseが正しくありません。')
     const ms = performance.now() - started
     const vertices = module._recon_vertex_count(), indices = module._recon_index_count()
     const positionPtr = module._recon_positions() / 4, indexPtr = module._recon_indices() / 4
-    const side = module._recon_side() as VoxelSide
+    const side = module._recon_side()
+    if (side !== VOXEL_SIDE) throw new Error('96³以外のVoxel結果は使用できません。')
     const normalization = Array.from(module.HEAPF32.subarray(module._recon_normalization() / 4, module._recon_normalization() / 4 + 4)) as [number, number, number, number]
     const positions = new Float32Array(module.HEAPF32.subarray(positionPtr, positionPtr + vertices * 3))
     const originalIndices = new Uint32Array(module.HEAPU32.subarray(indexPtr, indexPtr + indices))
