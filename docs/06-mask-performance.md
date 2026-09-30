@@ -44,3 +44,7 @@
 - GPU経路が成立しない場合、対応モデルや推論実装の変更を別Issueで検討する。依存パッケージ追加や領域指定の仕様変更は、プロジェクトの規約に従って確認してから行う。
 
 公式資料：[Interactive image segmentation guide for web](https://developers.google.com/edge/mediapipe/solutions/vision/interactive_segmenter/web_js)。CPU/GPUの指定とWorkerの説明はあるが、本プロジェクトでの1,500ms達成を保証するものではない。
+
+## 2026-09-30のVisual Hull再測定
+
+`/dev/visual-hull`の4枚のマイク写真では、正面の指定完了からMaskサムネイル表示まで4,782msで、内訳はモデル準備493ms、`setImage()`5ms、`segment()`4,252ms、表示26msだった。1,500ms目標は未達。右4,092ms、背面8,127ms（候補2回）、左4,136ms。候補探索はそれぞれ31/22/23ms、サムネイル表示は26/36/32msだった。推論はWorker内でも同期で、時間の大半を占める。4方向1回ずつの観測であり分布の推定ではない。CPU/GPU比較はGPU初期化時の`ModuleFactory not set.`で成立せず、CPUを継続する。詳細は`07-visual-hull-evaluation.md`を参照。

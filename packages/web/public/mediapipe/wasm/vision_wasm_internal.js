@@ -8358,12 +8358,8 @@ function custom_emscripten_dbgn(str, len) {
   if (typeof (dbg) !== "undefined") {
     dbg(UTF8ToString(str, len));
   } else {
-    if (typeof (custom_dbg) === "undefined") {
-      function custom_dbg(text) {
-        console.warn.apply(console, arguments);
-      }
-    }
-    custom_dbg(UTF8ToString(str, len));
+    if (typeof custom_dbg === "undefined") console.warn(UTF8ToString(str, len));
+    else custom_dbg(UTF8ToString(str, len));
   }
 }
 
@@ -8839,3 +8835,6 @@ if (typeof exports === 'object' && typeof module === 'object') {
 } else if (typeof define === 'function' && define['amd'])
   define([], () => ModuleFactory);
 
+
+// MediaPipeの動的importがES moduleになる環境でもFactoryを公開する。
+globalThis.ModuleFactory = ModuleFactory;

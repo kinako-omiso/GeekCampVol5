@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { analyzeGeometry, type GeometryResult } from '@gikcamp/geometry-wasm'
 import { reconstructQuickScanWithMetrics } from '../../features/analyze/reconstruction/quickScan'
 import type { QuickScanOutput, SilhouetteMask } from '../../features/analyze/reconstruction/types'
 import { loadPhoto, segmentPhoto, setPhotoForSegmentation } from '../../features/capture/pipeline/photoSegmenter'
@@ -117,6 +118,7 @@ export default function PhotoModelPage() {
   const [strokes, setStrokes] = useState<SelectionStroke[]>([])
   const [mode, setMode] = useState<'add' | 'remove'>('add')
   const [output, setOutput] = useState<QuickScanOutput | null>(null)
+  const [geometry, setGeometry] = useState<GeometryResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('写真を選択してください。')
   const [error, setError] = useState('')
@@ -161,6 +163,7 @@ export default function PhotoModelPage() {
     setBusy(true)
     setError('')
     setOutput(null)
+    setGeometry(null)
     setMask(null)
     setStrokes([])
     setMode('add')
@@ -207,6 +210,7 @@ export default function PhotoModelPage() {
     setBusy(true)
     setError('')
     setOutput(null)
+    setGeometry(null)
     setMaskMetrics(null)
     setStatus('対象物を切り出しています…')
     await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))
@@ -243,15 +247,27 @@ export default function PhotoModelPage() {
     }
   }
 
-  const generate = () => {
+  const generate = async () => {
     if (!mask) return
     setError('')
+    setBusy(true)
     try {
-      setOutput(reconstructQuickScanWithMetrics(mask))
-      setStatus('モデルを生成しました。ドラッグでモデルを回転、ホイールでモデルを拡大できます。')
+      const next = reconstructQuickScanWithMetrics(mask)
+      setOutput(next)
+      try {
+        setGeometry(await analyzeGeometry({ ...next.reconstruction, source: 'photo' }))
+        setStatus('モデルと形状解析を生成しました。ドラッグで回転、ホイールで拡大できます。')
+      } catch (cause) {
+        setGeometry(null)
+        setError(cause instanceof Error ? cause.message : '形状解析に失敗しました。')
+        setStatus('モデルを生成しました。形状解析のエラーを確認してください。')
+      }
     } catch (cause) {
       setOutput(null)
-      setError(cause instanceof Error ? cause.message : '3Dモデルを生成できませんでした。')
+      setGeometry(null)
+      setError(cause instanceof Error ? cause.message : '3Dモデルを解析できませんでした。')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -264,6 +280,7 @@ export default function PhotoModelPage() {
     setMode('add')
     setMask(null)
     setOutput(null)
+    setGeometry(null)
     setError('')
     setStatus('対象物の上をクリックまたはドラッグしてください。')
   }
@@ -293,7 +310,7 @@ export default function PhotoModelPage() {
             <button type="button" className={mode === 'remove' ? 'selected' : ''} disabled={busy} onClick={() => setMode('remove')}>除外</button>
           </div>
           <button type="button" disabled={busy || strokes.length === 0} onClick={reset}>指定をやり直す</button>
-          <button type="button" className="photo-model-primary" disabled={busy || !mask} onClick={generate}>3Dモデルを生成</button>
+          <button type="button" className="photo-model-primary" disabled={busy || !mask} onClick={() => { void generate() }}>3Dモデルを生成</button>
         </>}
       </section>
 
@@ -334,6 +351,11 @@ export default function PhotoModelPage() {
         <section className="photo-model-panel">
           <div className="photo-model-panel-heading"><h2>02 · 3Dを確認</h2><span>ドラッグで360°回転</span></div>
           {output ? <Preview output={output} onError={setError} /> : <div className="photo-model-placeholder photo-model-placeholder-dark">Maskを確認して「3Dモデルを生成」を押してください。</div>}
+          {geometry && <dl className="photo-model-metrics">
+            <div><dt>暫定能力値</dt><dd>HP {geometry.stats.hp} / 攻撃 {geometry.stats.attack} / リーチ {geometry.stats.reach} / 旋回 {geometry.stats.turnSpeed} / 移動 {geometry.stats.moveSpeed}</dd></div>
+            <div><dt>3D形状</dt><dd>体積 {geometry.volume.toFixed(3)} / 凸包 {geometry.hullIndices.length / 3}面 / 重心 {geometry.centerOfMass.map((v) => v.toFixed(2)).join(', ')}</dd></div>
+            <div><dt>特徴</dt><dd>細長さ {geometry.axes.elongation.toFixed(2)} / 充実度 {geometry.axes.solidity.toFixed(2)} / 鋭さ {geometry.axes.sharpness.toFixed(2)}（{geometry.statsVersion}）</dd></div>
+          </dl>}
           {output && <dl className="photo-model-metrics">
             <div><dt>輪郭抽出</dt><dd>{output.metrics.contourMs.toFixed(1)} ms</dd></div>
             <div><dt>メッシュ生成</dt><dd>{output.metrics.meshMs.toFixed(1)} ms</dd></div>
