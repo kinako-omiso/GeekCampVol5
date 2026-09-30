@@ -70,11 +70,15 @@ export function ControllerFlow() {
         },
 
         rejected: (reason) => {
+          setStep('join')
+          setBaseline(null)
           setConnectionState('rejected')
           setConnectionMessage(reason)
         },
 
         disconnected: () => {
+          setStep('join')
+          setBaseline(null)
           setConnectionState('disconnected')
           setConnectionMessage('PCとの接続が切れました')
         },

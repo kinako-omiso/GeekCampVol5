@@ -26,6 +26,9 @@ type ReceivedPhoto = {
   url: string
 }
 
+// 接続確認用定数
+const SHOW_HOST_DIAGNOSTICS = true
+
 const createPlayerStatus = (
   connected: boolean,
 ): LobbyPlayerStatus => ({
@@ -67,6 +70,38 @@ export function HostFlow() {
 
   useEffect(() => {
     const photoUrls = photoUrlsRef.current
+
+    const resetPlayer = (slot: PlayerSlot) => {
+      const photoUrl = photoUrls[slot]
+
+      if (photoUrl !== undefined) {
+        URL.revokeObjectURL(photoUrl)
+        delete photoUrls[slot]
+      }
+
+      setPlayers((current) => ({
+        ...current,
+        [slot]: null,
+      }))
+      setMotions((current) => ({
+        ...current,
+        [slot]: null,
+      }))
+      setButtons((current) => ({
+        ...current,
+        [slot]: null,
+      }))
+      setAssetProgress((current) => ({
+        ...current,
+        [slot]: 0,
+      }))
+      setPhotos((current) => {
+        const next = { ...current }
+        delete next[slot]
+        return next
+      })
+    }
+
     const session = new HostPeerSession({
       ready: (peerId, metadata) => {
         setControllerUrls({
@@ -94,10 +129,7 @@ export function HostFlow() {
       },
 
       playerDisconnected: (slot) => {
-        setPlayers((current) => ({
-          ...current,
-          [slot]: null,
-        }))
+        resetPlayer(slot)
       },
 
       motionReceived: (slot, message) => {
@@ -187,35 +219,54 @@ export function HostFlow() {
         }}
       />
 
-      <aside className="host-diagnostics" aria-label="通信確認">
-        {([1, 2] as const).map((slot) => (
-          <section key={slot} className="host-diagnostics__player">
-            <strong>Player {slot}</strong>
-            <span>Peer ID: {players[slot] ?? '未接続'}</span>
-            <span>
-              傾き:
-              {' '}
-              {motions[slot] === null
-                ? '-'
-                : `x=${motions[slot].x.toFixed(2)}, y=${motions[slot].y.toFixed(2)}`}
-            </span>
-            <span>ボタン: {buttons[slot]?.toUpperCase() ?? '-'}</span>
-            <span>
-              写真:
-              {' '}
-              {photos[slot] === undefined
-                ? `${Math.round(assetProgress[slot] * 100)}%`
-                : `受信済み ${photos[slot].manifest.width}×${photos[slot].manifest.height}`}
-            </span>
-            {photos[slot]?.manifest.kind === 'photo' && (
-              <img
-                src={photos[slot].url}
-                alt={`Player ${slot}から受信した写真`}
-              />
-            )}
-          </section>
-        ))}
-      </aside>
+      {SHOW_HOST_DIAGNOSTICS && (
+        <aside
+          className="host-diagnostics"
+          aria-label="通信確認"
+        >
+          {([1, 2] as const).map((slot) => (
+            <section
+              key={slot}
+              className="host-diagnostics__player"
+            >
+              <strong>Player {slot}</strong>
+
+              <span>
+                Peer ID: {players[slot] ?? '未接続'}
+              </span>
+
+              <span>
+                傾き:
+                {' '}
+                {motions[slot] === null
+                  ? '-'
+                  : `x=${motions[slot].x.toFixed(2)}, y=${motions[slot].y.toFixed(2)}`}
+              </span>
+
+              <span>
+                ボタン:
+                {' '}
+                {buttons[slot]?.toUpperCase() ?? '-'}
+              </span>
+
+              <span>
+                写真:
+                {' '}
+                {photos[slot] === undefined
+                  ? `${Math.round(assetProgress[slot] * 100)}%`
+                  : `受信済み ${photos[slot].manifest.width}×${photos[slot].manifest.height}`}
+              </span>
+
+              {photos[slot]?.manifest.kind === 'photo' && (
+                <img
+                  src={photos[slot].url}
+                  alt={`Player ${slot}から受信した写真`}
+                />
+              )}
+            </section>
+          ))}
+        </aside>
+      )}
     </>
   )
 }
