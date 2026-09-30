@@ -89,6 +89,7 @@ export class HostPeerSession {
     window.clearInterval(this.heartbeatTimer)
     window.clearInterval(this.timeoutTimer)
     for (const slot of [1, 2] as const) {
+      this.clearAssetTransfer(slot)
       this.motion[slot]?.close()
       this.asset[slot]?.close()
       this.control[slot]?.close()
@@ -112,8 +113,7 @@ export class HostPeerSession {
       }
 
       const connection = this.asset[slot]
-      const totalBytes =
-        transfer.manifest.byteLength
+      const totalBytes = transfer.manifest.byteLength
 
       if (connection?.open) {
         this.rejectAsset(
@@ -123,7 +123,7 @@ export class HostPeerSession {
         )
       }
 
-      this.clearAssetTransfer(slot)
+      this.clearAssetTransfer(slot, transferId)
 
       // PC側の進捗表示も0へ戻す
       this.events.assetProgress(
@@ -136,38 +136,42 @@ export class HostPeerSession {
 
   private refreshAssetTimeout(
     slot: PlayerSlot,
+    transferId: string,
   ): void {
     const transfer = this.transfers[slot]
 
-    if (transfer === undefined) {
+    if (
+      transfer === undefined ||
+      transfer.manifest.transferId !== transferId
+    ) {
       return
     }
 
-    window.clearTimeout(
-      transfer.timeoutTimer,
-    )
+    window.clearTimeout(transfer.timeoutTimer)
 
-    transfer.timeoutTimer =
-      this.createAssetTimeout(
-        slot,
-        transfer.manifest.transferId,
-      )
+    transfer.timeoutTimer = this.createAssetTimeout(
+      slot,
+      transfer.manifest.transferId,
+    )
   }
 
   private clearAssetTransfer(
     slot: PlayerSlot,
+    transferId?: string,
   ): void {
     const transfer = this.transfers[slot]
 
-    if (transfer === undefined) {
+    if (
+      transfer === undefined ||
+      (transferId !== undefined &&
+        transfer.manifest.transferId !== transferId)
+    ) {
       return
     }
 
-    window.clearTimeout(
-      transfer.timeoutTimer,
-    )
+    window.clearTimeout(transfer.timeoutTimer)
 
-    this.clearAssetTransfer(slot)
+    delete this.transfers[slot]
   }
 
   private handleConnection(connection: DataConnection): void {
@@ -305,8 +309,16 @@ export class HostPeerSession {
     })
     connection.on('close', () => {
       if (this.asset[metadata.slot] === connection) {
+        const transfer = this.transfers[metadata.slot]
         delete this.asset[metadata.slot]
-        delete this.transfers[metadata.slot]
+        this.clearAssetTransfer(metadata.slot)
+        if (transfer !== undefined) {
+          this.events.assetProgress(
+            metadata.slot,
+            0,
+            transfer.manifest.byteLength,
+          )
+        }
       }
     })
     connection.on('error', (error) => this.events.error(error))
@@ -352,7 +364,13 @@ export class HostPeerSession {
       const transfer = this.transfers[slot]
       if (
         transfer === undefined ||
-        transfer.manifest.transferId !== message.transferId ||
+        transfer.manifest.transferId !== message.transferId
+      ) {
+        this.rejectAsset(connection, message.transferId, '写真チャンクが不正です')
+        return
+      }
+
+      if (
         message.index >= transfer.manifest.chunkCount ||
         transfer.chunks[message.index] !== undefined ||
         message.data.byteLength === 0 ||
@@ -361,12 +379,18 @@ export class HostPeerSession {
           transfer.manifest.byteLength
       ) {
         this.rejectAsset(connection, message.transferId, '写真チャンクが不正です')
-        this.clearAssetTransfer(slot)
+        this.clearAssetTransfer(slot, message.transferId)
+        this.events.assetProgress(
+          slot,
+          0,
+          transfer.manifest.byteLength,
+        )
         return
       }
 
       transfer.chunks[message.index] = message.data
       transfer.receivedBytes += message.data.byteLength
+      this.refreshAssetTimeout(slot, message.transferId)
       this.events.assetProgress(
         slot,
         transfer.receivedBytes,
@@ -384,39 +408,80 @@ export class HostPeerSession {
     const transfer = this.transfers[slot]
     if (
       transfer === undefined ||
-      transfer.manifest.transferId !== message.transferId ||
+      transfer.manifest.transferId !== message.transferId
+    ) {
+      this.rejectAsset(connection, message.transferId, '写真データが不足しています')
+      return
+    }
+
+    if (
       transfer.receivedBytes !== transfer.manifest.byteLength ||
       transfer.chunks.some((chunk) => chunk === undefined)
     ) {
       this.rejectAsset(connection, message.transferId, '写真データが不足しています')
-      this.clearAssetTransfer(slot)
+      this.clearAssetTransfer(slot, message.transferId)
+      this.events.assetProgress(
+        slot,
+        0,
+        transfer.manifest.byteLength,
+      )
       return
     }
 
-    const bytes = new Uint8Array(transfer.manifest.byteLength)
-    let offset = 0
-    for (const chunk of transfer.chunks) {
-      if (chunk === undefined) return
-      bytes.set(new Uint8Array(chunk), offset)
-      offset += chunk.byteLength
-    }
+    this.refreshAssetTimeout(slot, message.transferId)
 
-    if (await sha256(bytes.buffer) !== transfer.manifest.sha256) {
-      this.rejectAsset(connection, message.transferId, '写真のハッシュが一致しません')
-      this.clearAssetTransfer(slot)
-      return
-    }
+    try {
+      const bytes = new Uint8Array(transfer.manifest.byteLength)
+      let offset = 0
+      for (const chunk of transfer.chunks) {
+        if (chunk === undefined) return
+        bytes.set(new Uint8Array(chunk), offset)
+        offset += chunk.byteLength
+      }
 
-    const blob = new Blob(
-      [bytes.buffer],
-      { type: transfer.manifest.mimeType },
-    )
-    this.events.assetReceived(slot, transfer.manifest, blob)
-    connection.send({
-      type: 'asset-received',
-      transferId: message.transferId,
-    } satisfies AssetMessage)
-    this.clearAssetTransfer(slot)
+      const digest = await sha256(bytes.buffer)
+
+      // ハッシュ計算中にタイムアウトした場合は成功扱いにしない
+      if (this.transfers[slot] !== transfer) {
+        return
+      }
+
+      if (digest !== transfer.manifest.sha256) {
+        this.rejectAsset(connection, message.transferId, '写真のハッシュが一致しません')
+        this.events.assetProgress(
+          slot,
+          0,
+          transfer.manifest.byteLength,
+        )
+        return
+      }
+
+      const blob = new Blob(
+        [bytes.buffer],
+        { type: transfer.manifest.mimeType },
+      )
+      this.events.assetReceived(slot, transfer.manifest, blob)
+      connection.send({
+        type: 'asset-received',
+        transferId: message.transferId,
+      } satisfies AssetMessage)
+    } catch (error) {
+      if (this.transfers[slot] === transfer) {
+        this.rejectAsset(
+          connection,
+          message.transferId,
+          '写真の検証に失敗しました',
+        )
+        this.events.assetProgress(
+          slot,
+          0,
+          transfer.manifest.byteLength,
+        )
+      }
+      throw error
+    } finally {
+      this.clearAssetTransfer(slot, message.transferId)
+    }
   }
 
   private readMetadata(connection: DataConnection): PairingMetadata | null {
