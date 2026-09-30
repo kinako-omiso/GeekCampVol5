@@ -70,14 +70,18 @@ UI状態は React、Babylon.js のゲームループと物理状態は React の
 type GeometryInput = {
   positions: Float32Array
   indices: Uint32Array
-  source: "photo" | "preset"
+  source: "photo" | "reconstruction"
 }
  
 type GeometryResult = {
   hullPositions: Float32Array
   hullIndices: Uint32Array
   centerOfMass: [number, number, number]
-  inertia: [number, number, number]
+  inertia: [number, number, number]  // 主慣性モーメント
+  principalAxes: Float32Array     // 3本の主軸（各3要素）
+  volume: number
+  surfaceArea: number
+  statsVersion: "provisional-1"
   axes: { elongation: number; solidity: number; sharpness: number }
   stats: FighterStats
 }
@@ -90,6 +94,22 @@ type FighterStats = {
   moveSpeed: number   // 1.25 〜 0.80
 }
 ```
+### Issue #32 の暫定形状解析・能力値（Issue #33 で置き換える）
+
+`geometry-wasm` は Quick Scan と Visual Hull の両方から `positions` / `indices` を受ける。C++ で3D凸包、体積、重心、慣性テンソルと主軸を算出する。入力は最長軸を1に正規化して解析し、入力方式別の補正は設けない。閉じていないメッシュや体積を持たないメッシュはエラーにする。
+
+能力値の式は **`provisional-1`** として固定し、Issue #33 で正式な算出式へ置き換える。外接箱の体積に対するメッシュ体積比を `B`、体積分布の固有値を `λ1 ≥ λ2 ≥ λ3` として `E = 1 - √((λ2 + λ3) / (2λ1))`、表面積 `A` と体積 `V` から `Q = 1 - π^(1/3)(6V)^(2/3)/A` を求め、それぞれ0〜1へ収める。3D凸包に対する体積比は `solidity` として結果に含める。
+
+| 能力値 | 暫定式 |
+|---|---|
+| HP | `round(80 + 60B)` |
+| 攻撃 | `round2(0.80 + 0.50Q)` |
+| リーチ | `round2(0.85 + 0.40E)` |
+| 旋回速度 | `round(240 - 120E)` |
+| 移動速度 | `round2(1.25 - 0.45B)` |
+
+この式は品質評価のための暫定値であり、能力値のバランスを確定するものではない。`FighterStats` の型は `packages/protocol` に置く。
+
 ## 5. 通信設計
  
 ### ペアリング

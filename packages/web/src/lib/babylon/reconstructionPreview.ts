@@ -13,7 +13,7 @@ import { Scene } from '@babylonjs/core/scene'
 import { getVolumeCentroid } from '../../features/analyze/reconstruction/centroid'
 import type { ReconstructionResult } from '../../features/analyze/reconstruction/types'
 
-export function mountReconstructionPreview(canvas: HTMLCanvasElement, reconstruction: ReconstructionResult): () => void {
+export function mountReconstructionPreview(canvas: HTMLCanvasElement, reconstruction: ReconstructionResult, onFirstFrame?: () => void): () => void {
   if (!canvas.getContext('webgl2')) throw new Error('WebGL2に対応したPCブラウザで開いてください。')
 
   const engine = new Engine(canvas, true, { disableWebGL2Support: false })
@@ -92,7 +92,11 @@ export function mountReconstructionPreview(canvas: HTMLCanvasElement, reconstruc
 
   const resizeObserver = new ResizeObserver(() => engine.resize())
   resizeObserver.observe(canvas)
-  engine.runRenderLoop(() => scene.render())
+  let firstFrame = true
+  engine.runRenderLoop(() => {
+    scene.render()
+    if (firstFrame) { firstFrame = false; onFirstFrame?.() }
+  })
   return () => {
     resizeObserver.disconnect()
     canvas.removeEventListener('pointerdown', onPointerDown)
