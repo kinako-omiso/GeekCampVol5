@@ -17,14 +17,14 @@ import { createPairingMetadata } from './pairing.ts'
 
 const HEARTBEAT_INTERVAL_MS = 2_000
 const CONNECTION_TIMEOUT_MS = 8_000
-// テスト用にasset転送を拒否する
-const FORCE_ASSET_FAILURE = true
+const ASSET_TRANSFER_TIMEOUT_MS = 10_000
 
 type PairingMetadataBySlot = Record<PlayerSlot, PairingMetadata>
 type PendingTransfer = {
   manifest: AssetManifest
   chunks: Array<ArrayBuffer | undefined>
   receivedBytes: number
+  timeoutTimer: number
 }
 
 type HostPeerSessionEvents = {
@@ -94,6 +94,80 @@ export class HostPeerSession {
       this.control[slot]?.close()
     }
     this.peer.destroy()
+  }
+
+  private createAssetTimeout(
+    slot: PlayerSlot,
+    transferId: string,
+  ): number {
+    return window.setTimeout(() => {
+      const transfer = this.transfers[slot]
+
+      // すでに終了した、または別の転送に変わっている
+      if (
+        transfer === undefined ||
+        transfer.manifest.transferId !== transferId
+      ) {
+        return
+      }
+
+      const connection = this.asset[slot]
+      const totalBytes =
+        transfer.manifest.byteLength
+
+      if (connection?.open) {
+        this.rejectAsset(
+          connection,
+          transferId,
+          '写真転送がタイムアウトしました',
+        )
+      }
+
+      this.clearAssetTransfer(slot)
+
+      // PC側の進捗表示も0へ戻す
+      this.events.assetProgress(
+        slot,
+        0,
+        totalBytes,
+      )
+    }, ASSET_TRANSFER_TIMEOUT_MS)
+  }
+
+  private refreshAssetTimeout(
+    slot: PlayerSlot,
+  ): void {
+    const transfer = this.transfers[slot]
+
+    if (transfer === undefined) {
+      return
+    }
+
+    window.clearTimeout(
+      transfer.timeoutTimer,
+    )
+
+    transfer.timeoutTimer =
+      this.createAssetTimeout(
+        slot,
+        transfer.manifest.transferId,
+      )
+  }
+
+  private clearAssetTransfer(
+    slot: PlayerSlot,
+  ): void {
+    const transfer = this.transfers[slot]
+
+    if (transfer === undefined) {
+      return
+    }
+
+    window.clearTimeout(
+      transfer.timeoutTimer,
+    )
+
+    this.clearAssetTransfer(slot)
   }
 
   private handleConnection(connection: DataConnection): void {
@@ -254,19 +328,17 @@ export class HostPeerSession {
         this.rejectAsset(connection, message.manifest.transferId, '転送情報が不正です')
         return
       }
-      if (FORCE_ASSET_FAILURE) {
-        this.rejectAsset(
-          connection,
-          message.manifest.transferId,
-          'テスト用に写真転送を失敗させました',
-        )
-        return
-      }
 
       this.transfers[slot] = {
         manifest: message.manifest,
-        chunks: new Array(message.manifest.chunkCount),
+        chunks: new Array(
+          message.manifest.chunkCount,
+        ),
         receivedBytes: 0,
+        timeoutTimer: this.createAssetTimeout(
+          slot,
+          message.manifest.transferId,
+        ),
       }
       this.events.assetProgress(slot, 0, message.manifest.byteLength)
       connection.send({
@@ -289,7 +361,7 @@ export class HostPeerSession {
           transfer.manifest.byteLength
       ) {
         this.rejectAsset(connection, message.transferId, '写真チャンクが不正です')
-        delete this.transfers[slot]
+        this.clearAssetTransfer(slot)
         return
       }
 
@@ -317,7 +389,7 @@ export class HostPeerSession {
       transfer.chunks.some((chunk) => chunk === undefined)
     ) {
       this.rejectAsset(connection, message.transferId, '写真データが不足しています')
-      delete this.transfers[slot]
+      this.clearAssetTransfer(slot)
       return
     }
 
@@ -331,7 +403,7 @@ export class HostPeerSession {
 
     if (await sha256(bytes.buffer) !== transfer.manifest.sha256) {
       this.rejectAsset(connection, message.transferId, '写真のハッシュが一致しません')
-      delete this.transfers[slot]
+      this.clearAssetTransfer(slot)
       return
     }
 
@@ -344,7 +416,7 @@ export class HostPeerSession {
       type: 'asset-received',
       transferId: message.transferId,
     } satisfies AssetMessage)
-    delete this.transfers[slot]
+    this.clearAssetTransfer(slot)
   }
 
   private readMetadata(connection: DataConnection): PairingMetadata | null {
@@ -423,7 +495,7 @@ export class HostPeerSession {
     delete this.control[slot]
     delete this.lastReceivedAt[slot]
     delete this.lastSequence[slot]
-    delete this.transfers[slot]
+    this.clearAssetTransfer(slot)
 
     const motion = this.motion[slot]
     const asset = this.asset[slot]
