@@ -5,6 +5,8 @@ import createGeometry from '../../geometry-wasm/dist/geometry.mjs'
 import createReconstruction from '../../reconstruction-wasm/dist/reconstruction.mjs'
 import { createFixedCamera } from '../../reconstruction-wasm/src/index.ts'
 import { reconstructQuickScan } from '../src/features/analyze/reconstruction/quickScan.ts'
+import { assessMask } from '../src/features/capture/pipeline/maskQuality.ts'
+import { findCandidatePoints, assessCandidate } from '../src/features/capture/pipeline/visualHullCandidateSearch.ts'
 
 function instantiate(create: (options: object) => Promise<any>, file: string) {
   const binary = readFileSync(new URL(file, import.meta.url))
@@ -35,7 +37,8 @@ async function analyze(positions: Float32Array, indices: Uint32Array) {
   } finally { module._free(p); module._free(q) }
 }
 
-async function reconstruct(yaws: number[], shape: 'square' | 'circle', empty = false, badCamera = false) {
+async function reconstruct(yaws: number[], shape: 'square' | 'circle', empty = false, badCamera = false,
+  options: { side: 96 | 128 | 160; smooth: 0 | 1; adaptive: 0 | 1 } = { side: 96, smooth: 0, adaptive: 0 }) {
   const module = await reconstructionPromise
   const size = 64
   const m = mask(size, (x, y) => !empty && (shape === 'square'
@@ -55,13 +58,14 @@ async function reconstruct(yaws: number[], shape: 'square' | 'circle', empty = f
       module.HEAPF32.set(camera.rotation, pointers[4] / 4 + i * 21 + 9)
       module.HEAPF32.set(camera.translation, pointers[4] / 4 + i * 21 + 18)
     })
-    const status = module._recon_build(...pointers, count)
+    const status = module._recon_build_options(...pointers, count, options.side, options.smooth, options.adaptive)
     if (status) return { status }
     const vertexCount = module._recon_vertex_count(), indexCount = module._recon_index_count()
     const positions = new Float32Array(module.HEAPF32.subarray(module._recon_positions() / 4, module._recon_positions() / 4 + vertexCount * 3))
     const indices = new Uint32Array(module.HEAPU32.subarray(module._recon_indices() / 4, module._recon_indices() / 4 + indexCount))
     const normals = new Float32Array(module.HEAPF32.subarray(module._recon_normals() / 4, module._recon_normals() / 4 + vertexCount * 3))
-    return { status, positions, indices, normals, occupied: module._recon_occupied() }
+    return { status, positions, indices, normals, occupied: module._recon_occupied(),
+      normalization: Array.from(module.HEAPF32.subarray(module._recon_normalization() / 4, module._recon_normalization() / 4 + 4)) }
   } finally { pointers.forEach((pointer) => module._free(pointer)) }
 }
 
@@ -128,4 +132,69 @@ test('曲面と空Mask・不正な姿勢を処理する', async () => {
   assert.equal((await reconstruct([0, 90, 180, 270], 'square', true)).status, 2)
   assert.equal((await reconstruct([0, 90, 180], 'square')).status, 1)
   assert.equal((await reconstruct([0, 90, 180, 270], 'square', false, true)).status, 1)
+})
+
+
+test('Mask候補の空・画像端・正常な中央選択を判定する', () => {
+  const blank = mask(32, () => false)
+  const edge = mask(32, (x, y) => x < 12 && y > 5 && y < 25)
+  const center = mask(32, (x, y) => x > 8 && x < 24 && y > 8 && y < 24)
+  assert.match(assessMask(blank).reason, /見つかりません/)
+  assert.equal(assessMask(edge).touchesEdge, true)
+  assert.equal(assessMask(edge).needsReview, true)
+  assert.equal(assessMask(center).needsReview, false)
+})
+
+test('96/128/160³と二値・補間の合成形状を検証し、標準96³の能力値を再現する', async () => {
+  const yaws = [0, 90, 180, 270]
+  for (const side of [96, 128, 160] as const) for (const smooth of [0, 1] as const) {
+    const options = { side, smooth, adaptive: 1 as const }
+    const first = await reconstruct(yaws, 'square', false, false, options)
+    assert.equal(first.status, 0)
+    const volume = inspectMesh(first as { positions: Float32Array; indices: Uint32Array; normals: Float32Array })
+    assert.ok(volume > 0.05 && volume < 1)
+    const features = await analyze(first.positions!, first.indices!)
+    if (side === 96) assert.equal(features.status, 0, `side=${side} smooth=${smooth}`)
+    const again = await reconstruct(yaws, 'square', false, false, options)
+    assert.deepEqual(first.positions, again.positions)
+    assert.deepEqual(first.indices, again.indices)
+    if (features.status !== 0) console.log(`比較候補 side=${side} smooth=${smooth} の形状解析 status=${features.status}`)
+    const repeatedFeatures = await analyze(again.positions!, again.indices!)
+    assert.equal(repeatedFeatures.status, features.status)
+    if (features.status === 0) assert.deepEqual(repeatedFeatures.values, features.values)
+  }
+})
+
+
+test('正面Maskの画像内容からずれた対象を探し、別色の背景物体を避ける', () => {
+  const picture = (objectX: number, distractor: boolean) => {
+    const data = new Uint8ClampedArray(64 * 64 * 4)
+    for (let y = 0; y < 64; y += 1) for (let x = 0; x < 64; x += 1) {
+      const index = (y * 64 + x) * 4
+      const object = x >= objectX && x < objectX + 12 && y >= 20 && y < 44
+      const falseTarget = distractor && x >= 18 && x < 30 && y >= 20 && y < 44
+      const value = object ? [60, 65, 70] : falseTarget ? [240, 40, 40] : [235, 235, 235]
+      data.set([...value, 255], index)
+    }
+    return { width: 64, height: 64, data }
+  }
+  const foreground = mask(64, (x, y) => x >= 18 && x < 30 && y >= 20 && y < 44)
+  const candidates = findCandidatePoints(picture(18, false), foreground, picture(33, true), { x: 24 / 64, y: 32 / 64 })
+  assert.ok(candidates.length <= 3)
+  assert.ok(candidates.some((point) => point.x > 32 / 64 && point.x < 46 / 64))
+  assert.equal(assessMask(foreground, { x: 24 / 64, y: 32 / 64 }).needsReview, false)
+  assert.equal(assessCandidate(foreground, { x: 24 / 64, y: 32 / 64 }, foreground).acceptable, true)
+})
+
+test('面向きの不整合と小さな開口部を閉じ、C++形状解析へ渡す', async () => {
+  const { orientClosedMesh } = await import('../../reconstruction-wasm/src/meshWinding.ts')
+  const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1])
+  const inconsistent = new Uint32Array([0, 1, 2, 0, 1, 3, 0, 3, 2, 1, 2, 3])
+  const fixed = orientClosedMesh(positions, inconsistent)
+  assert.ok(fixed.correctedFaces > 0)
+  assert.equal(fixed.sealedFaces, 0)
+  assert.equal((await analyze(positions, fixed.indices)).status, 0)
+  const open = orientClosedMesh(positions, new Uint32Array([0, 2, 1, 0, 1, 3, 0, 3, 2]))
+  assert.equal(open.sealedFaces, 1)
+  assert.equal((await analyze(positions, open.indices)).status, 0)
 })
