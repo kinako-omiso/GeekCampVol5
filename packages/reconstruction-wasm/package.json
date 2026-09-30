@@ -1,5 +1,5 @@
 {
-  "name": "@gikcamp/geometry-wasm",
+  "name": "@gikcamp/reconstruction-wasm",
   "private": true,
   "version": "0.0.0",
   "type": "module",

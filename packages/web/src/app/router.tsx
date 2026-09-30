@@ -40,6 +40,12 @@ export const router = createBrowserRouter([
     }),
   },
   {
+    path: '/dev/visual-hull',
+    lazy: async () => ({
+      Component: (await import('../dev/visual-hull/VisualHullPage')).default,
+    }),
+  },
+  {
     path: '/dev/photo-model',
     lazy: async () => ({
       Component: (await import('../dev/photo-model/PhotoModelPage')).default,
