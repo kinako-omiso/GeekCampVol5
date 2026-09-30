@@ -14,6 +14,7 @@ import { getVolumeCentroid } from '../../analyze/reconstruction/centroid'
 import { reconstructQuickScan } from '../../analyze/reconstruction/quickScan'
 import { createWebGL2Engine } from '../../../lib/babylon/engine'
 import { stepMovement, type MotionInput, type MovementState } from './movement'
+import { createSampleMask } from './sampleMask'
 
 type AttackButton = 'a' | 'b'
 type AttackState = { button: AttackButton; startedAt: number }
@@ -24,19 +25,6 @@ export type DevBattle = {
   attack: (button: AttackButton) => boolean
   setInspecting: (inspecting: boolean) => void
   dispose: () => void
-}
-
-function sampleMask() {
-  const width = 96
-  const height = 96
-  const data = new Uint8Array(width * height)
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      if ((x >= 24 && x <= 43 && y >= 15 && y <= 77) ||
-          (x >= 24 && x <= 73 && y >= 53 && y <= 77)) data[y * width + x] = 1
-    }
-  }
-  return { width, height, data }
 }
 
 function attackOffset(attack: AttackState | null, now: number): number {
@@ -64,7 +52,7 @@ export function mountDevBattle(canvas: HTMLCanvasElement): DevBattle {
   groundMaterial.diffuseColor = Color3.FromHexString('#81bd69')
   ground.material = groundMaterial
 
-  const reconstruction = reconstructQuickScan(sampleMask())
+  const reconstruction = reconstructQuickScan(createSampleMask())
   const vertexData = new VertexData()
   vertexData.positions = reconstruction.positions
   vertexData.indices = reconstruction.indices
