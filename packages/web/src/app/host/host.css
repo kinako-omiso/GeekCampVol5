@@ -1,0 +1,19 @@
+/* モック用のボタン。スマホとつないで状態が進むようになったら消す */
+.host-mock {
+  position: fixed;
+  top: 4px;
+  left: 50%;
+  z-index: 200;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+.host-mock button {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}

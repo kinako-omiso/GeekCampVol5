@@ -24,6 +24,11 @@ npm run build
 
 ビルドには `tsc -b` による型チェックも含まれます。
 
+pnpm を使う場合も、リポジトリルートの `pnpm-workspace.yaml` が
+`@gikcamp/protocol` をローカルの共有パッケージへリンクします。
+`packages/web` から `pnpm run dev` を実行できます。
+依存の追加・更新と固定は従来どおり npm と `package-lock.json` で行います。
+
 ---
 
 # React + TypeScript + Vite

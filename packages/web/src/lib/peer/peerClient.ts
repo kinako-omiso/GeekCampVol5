@@ -2,14 +2,20 @@
 import Peer from 'peerjs'
 import type { DataConnection } from 'peerjs'
 import {
+  isControlMessage,
+  isMotionMessage,
   isTestMessage,
+  type ControlMessage,
+  type MotionMessage,
   type TestMessage,
 } from '@gikcamp/protocol'
+
+export type PeerMessage = TestMessage | MotionMessage | ControlMessage
 
 export type PeerClientEvents = {
   open: (peerId: string) => void
   connected: (peerId: string) => void
-  message: (peerId: string, message: TestMessage) => void
+  message: (peerId: string, message: PeerMessage) => void
   error: (error: Error) => void
   close: (peerId: string) => void
 }
@@ -44,7 +50,7 @@ export class PeerClient {
     this.attachConnection(connection)
   }
 
-  send(peerId: string, message: TestMessage): void {
+  send(peerId: string, message: PeerMessage): void {
     const connection = this.connections.get(peerId)
 
     if (connection === undefined || !connection.open) {
@@ -54,7 +60,7 @@ export class PeerClient {
     connection.send(message)
   }
 
-  broadcast(message: TestMessage): void {
+  broadcast(message: PeerMessage): void {
     for (const connection of this.connections.values()) {
       if (connection.open) {
         connection.send(message)
@@ -89,7 +95,7 @@ export class PeerClient {
     })
 
     connection.on('data', (data) => {
-      if (isTestMessage(data)) {
+      if (isTestMessage(data) || isMotionMessage(data) || isControlMessage(data)) {
         this.events.message(connection.peer, data)
         return
       }

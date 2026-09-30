@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { PhoneCloud, PhoneStage } from '../../components/PhoneStage'
 import { Svg } from '../../components/Svg'
 import { players, timing, type PlayerId } from '../../../../../docs/design/tokens'
@@ -10,6 +10,8 @@ import './pad.css'
 
 type Props = {
   player: PlayerId
+  connected?: boolean
+  onAttack?: (button: ButtonId) => void
 }
 
 type ButtonId = 'a' | 'b'
@@ -21,9 +23,10 @@ const BURST_POINTS =
 /**
  * スマホ：対戦画面（横持ちコントローラー）。
  * A は左の親指、B は右の親指。B は押したあと3秒使えない。
- * モック：押した見た目とクールダウンだけで、PC への送信は後続の issue で作る。
+ * onAttack が渡された検証画面では、有効な押下を親へ通知する。
  */
-export function PadScreen({ player }: Props) {
+export function PadScreen({ player, connected, onAttack }: Props) {
+  const lastAPressRef = useRef(-Infinity)
   const [pressed, setPressed] = useState<Record<ButtonId, boolean>>({ a: false, b: false })
   // B が使えるようになる時刻（performance.now() 基準）。null ならいつでも使える
   const [cooldownEnd, setCooldownEnd] = useState<number | null>(null)
@@ -50,8 +53,14 @@ export function PadScreen({ player }: Props) {
     return () => cancelAnimationFrame(frame)
   }, [cooldownEnd])
 
-  // timeStamp はイベントが起きた時刻（performance.now() と同じ基準）
+  // クールダウンと連打間隔には同じ時計を使う
   const press = (id: ButtonId, timeStamp: number) => {
+    if (connected === false || (id === 'b' && cooldownEnd !== null)) return
+    if (id === 'a') {
+      if (timeStamp - lastAPressRef.current < 400) return
+      lastAPressRef.current = timeStamp
+    }
+    onAttack?.(id)
     setPressed((prev) => ({ ...prev, [id]: true }))
     if (id === 'b' && cooldownEnd === null) {
       setCooldownEnd(timeStamp + timing.bCooldown * 1000)
@@ -61,7 +70,7 @@ export function PadScreen({ player }: Props) {
 
   // 親指で同時に押せるように、click ではなく pointer イベントで扱う
   const handlers = (id: ButtonId) => ({
-    onPointerDown: (event: PointerEvent) => press(id, event.timeStamp),
+    onPointerDown: () => press(id, performance.now()),
     onPointerUp: () => release(id),
     onPointerCancel: () => release(id),
     onPointerLeave: () => release(id),
@@ -79,7 +88,7 @@ export function PadScreen({ player }: Props) {
         <div className="ss-display pad__player">{players[player].label}</div>
         <Svg markup={tiltIcon} className="pad__tilt-icon" />
         <span className="pad__bar-text">かたむけて うごく</span>
-        <Svg markup={connectedIcon} className="pad__signal" label="つながっている" />
+        <Svg markup={connectedIcon} className={connected === false ? 'pad__signal is-disconnected' : 'pad__signal'} label={connected === false ? '未接続' : 'つながっている'} />
       </div>
 
       <div className="pad__buttons">
@@ -87,6 +96,7 @@ export function PadScreen({ player }: Props) {
           type="button"
           className={pressed.a ? 'pad__button pad__button--a is-pressed' : 'pad__button pad__button--a'}
           aria-label="A たいあたり小"
+          disabled={connected === false}
           {...handlers('a')}
         >
           <span className="ss-display pad__letter pad__letter--a">A</span>
@@ -101,6 +111,7 @@ export function PadScreen({ player }: Props) {
           className={pressed.b ? 'pad__button pad__button--b is-pressed' : 'pad__button pad__button--b'}
           aria-label={coolingDown ? `B たいあたり中。あと ${Math.ceil(remainingMs / 1000)} びょう` : 'B たいあたり中'}
           aria-disabled={coolingDown}
+          disabled={connected === false}
           {...handlers('b')}
         >
           <svg className="pad__burst" viewBox="-120 -120 240 240" aria-hidden="true">

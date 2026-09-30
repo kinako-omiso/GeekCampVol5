@@ -13,6 +13,7 @@ import './join.css'
 type Props = {
   player: PlayerId
   onCalibrated: (baseline: Baseline) => void
+  connected?: boolean
 }
 
 type Phase = 'start' | 'calibrating' | 'done' | 'denied' | 'unsupported'
@@ -27,7 +28,7 @@ const RESTART_LABELS = {
  * スマホ：接続画面。
  * 「タッチ!」でモーション権限を要求し、水準器の泡が真ん中に来るまで静止して基準姿勢を取る。
  */
-export function JoinScreen({ player, onCalibrated }: Props) {
+export function JoinScreen({ player, onCalibrated, connected }: Props) {
   const [phase, setPhase] = useState<Phase>('start')
   const [progress, setProgress] = useState(0)
   const [restartLabel, setRestartLabel] = useState('')
@@ -72,7 +73,7 @@ export function JoinScreen({ player, onCalibrated }: Props) {
     <PhoneStage player={player} className="join">
       <PhoneCloud className="join__cloud join__cloud--left" />
       <PhoneCloud className="join__cloud join__cloud--right" />
-      <Svg markup={connectedIcon} className="join__signal" label="つながっている" />
+      <Svg markup={connectedIcon} className={connected === false ? 'join__signal is-disconnected' : 'join__signal'} label={connected === false ? '未接続' : 'つながっている'} />
 
       {phase === 'start' && (
         <div className="join__start">

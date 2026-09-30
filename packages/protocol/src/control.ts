@@ -1,4 +1,4 @@
-// スマホが共有する型とZodスキーマを定義
+// PCとスマホが共有する接続制御メッセージとZodスキーマを定義
 import { z } from 'zod'
 
 export const PROTOCOL_VERSION = '0.1.0' as const
@@ -22,7 +22,7 @@ export type PairingMetadata = z.infer<
   typeof pairingMetadataSchema
 >
 
-// データ判別のスキーマ
+// 接続管理と検証画面の操作に使うメッセージ
 export const controlMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('connection-accepted'),
@@ -35,8 +35,21 @@ export const controlMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('heartbeat'),
   }),
+  z.object({
+    type: z.literal('attack'),
+    button: z.union([
+      z.literal('a'),
+      z.literal('b'),
+    ]),
+  }),
 ])
 
 export type ControlMessage = z.infer<
   typeof controlMessageSchema
 >
+
+export function isControlMessage(
+  value: unknown,
+): value is ControlMessage {
+  return controlMessageSchema.safeParse(value).success
+}
