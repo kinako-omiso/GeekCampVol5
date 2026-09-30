@@ -29,6 +29,18 @@
   color: #fff;
   font-size: calc(var(--u) * 28);
 }
+.capture__send-error {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--u) * 24);
+  z-index: 2;
+  transform: translateX(-50%);
+  padding: calc(var(--u) * 8) calc(var(--u) * 16);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-danger);
+  color: #fff;
+  white-space: nowrap;
+}
 .capture__guide {
   position: absolute;
   left: 18%;
@@ -132,6 +144,10 @@
   height: 100%;
   background: var(--ss-sun);
   animation: capture-progress ease-in-out both;
+}
+.capture__sending-fill.is-live {
+  animation: none;
+  transition: width 120ms linear;
 }
 
 /* ---- 送信完了 ---- */

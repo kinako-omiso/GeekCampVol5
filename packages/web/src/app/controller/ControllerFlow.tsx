@@ -6,7 +6,12 @@ import { OrientScreen } from '../../features/orient/OrientScreen'
 import { PadScreen } from '../../features/pad/PadScreen'
 import { ControllerPeerSession } from '../../lib/peer/controllerPeerSession.ts'
 import { parseControllerPairing } from '../../lib/peer/pairing.ts'
-import type { Baseline } from '../../lib/sensor'
+import {
+  createTiltNormalizer,
+  getScreenAngle,
+  subscribeOrientation,
+  type Baseline,
+} from '../../lib/sensor'
 import type { PlayerId } from '../../../../../docs/design/tokens'
 import '../../../../../docs/design/tokens.css'
 import './controller.css'
@@ -36,7 +41,8 @@ export function ControllerFlow() {
   const [connectionMessage, setConnectionMessage] =
     useState('PCに接続しています')
 
-  const baselineRef = useRef<Baseline | null>(null)
+  const sessionRef = useRef<ControllerPeerSession | null>(null)
+  const [baseline, setBaseline] = useState<Baseline | null>(null)
 
   const pairing = parseControllerPairing(
     new URLSearchParams(query),
@@ -78,11 +84,47 @@ export function ControllerFlow() {
         },
       },
     )
+    sessionRef.current = session
 
     return () => {
+      if (sessionRef.current === session) {
+        sessionRef.current = null
+      }
       session.destroy()
     }
   }, [query])
+
+  useEffect(() => {
+    if (baseline === null || connectionState !== 'connected') {
+      return
+    }
+
+    const normalize = createTiltNormalizer(baseline)
+    let lastSentAt = -Infinity
+
+    return subscribeOrientation((orientation) => {
+      const now = performance.now()
+
+      if (now - lastSentAt < 1_000 / 30) {
+        return
+      }
+
+      const motion = normalize(
+        orientation,
+        getScreenAngle(),
+      )
+
+      if (motion === null) {
+        return
+      }
+
+      lastSentAt = now
+      sessionRef.current?.sendMotion({
+        x: motion.x,
+        y: motion.y,
+      })
+    })
+  }, [baseline, connectionState])
 
   const goNext = () => {
     setStep((current) => {
@@ -120,13 +162,34 @@ export function ControllerFlow() {
         <JoinScreen
           player={player}
           onCalibrated={(baseline) => {
-            baselineRef.current = baseline
+            setBaseline(baseline)
           }}
         />
       )}
 
       {step === 'capture' && (
-        <CaptureScreen player={player} />
+        <CaptureScreen
+          player={player}
+          onSendPhoto={(
+            photo,
+            dimensions,
+            onProgress,
+          ) => {
+            const session = sessionRef.current
+
+            if (session === null) {
+              return Promise.reject(
+                new Error('PCと接続されていません'),
+              )
+            }
+
+            return session.sendPhoto(
+              photo,
+              dimensions,
+              onProgress,
+            )
+          }}
+        />
       )}
 
       {step === 'orient' && (
@@ -134,7 +197,13 @@ export function ControllerFlow() {
       )}
 
       {step === 'pad' && (
-        <PadScreen player={player} />
+        <PadScreen
+          player={player}
+          connected={connectionState === 'connected'}
+          onAttack={(button) => {
+            sessionRef.current?.sendAttack(button)
+          }}
+        />
       )}
 
       <button
