@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PhysicsBattle } from '../../features/battle/game/physicsBattle'
+import { TEST_ATTACK_MULTIPLIERS, TEST_ATTACK_VALUE } from '../../features/battle/game/knockback'
 import type { PlayerId } from '../../../../../docs/design/tokens'
 import '../../../../../docs/design/tokens.css'
 import './physics.css'
@@ -12,6 +13,8 @@ export function PhysicsPage() {
   const [generation, setGeneration] = useState(0)
   const [ready, setReady] = useState(false)
   const [contacts, setContacts] = useState(0)
+  const [hits, setHits] = useState<Record<PlayerId, number>>({ p1: 0, p2: 0 })
+  const [lastImpulse, setLastImpulse] = useState<Record<PlayerId, number | null>>({ p1: null, p2: null })
   const [out, setOut] = useState<PlayerId[]>([])
   const [error, setError] = useState('')
   const [status, setStatus] = useState('Havok を読み込んでいます…')
@@ -39,7 +42,7 @@ export function PhysicsPage() {
       if (event.code === 'Enter' && event.target instanceof HTMLButtonElement) return
       event.preventDefault()
       if (event.code === 'KeyF' || event.code === 'Enter') {
-        if (!event.repeat) battle?.applyTestImpulse(event.code === 'KeyF' ? 'p1' : 'p2')
+        if (!event.repeat) battle?.triggerTestAttack(event.code === 'KeyF' ? 'p1' : 'p2')
         return
       }
       pressed.add(event.code)
@@ -70,6 +73,9 @@ export function PhysicsPage() {
           if (cancelled) return
           if (event.type === 'contact') {
             setContacts((count) => count + 1)
+          } else if (event.type === 'hit') {
+            setHits((counts) => ({ ...counts, [event.attacker]: counts[event.attacker] + 1 }))
+            setLastImpulse((values) => ({ ...values, [event.attacker]: event.impulse }))
           } else {
             setOut((players) => players.includes(event.player) ? players : [...players, event.player])
           }
@@ -106,6 +112,8 @@ export function PhysicsPage() {
   const reset = () => {
     setReady(false)
     setContacts(0)
+    setHits({ p1: 0, p2: 0 })
+    setLastImpulse({ p1: null, p2: null })
     setOut([])
     setError('')
     setStatus('Havok を読み込んでいます…')
@@ -131,12 +139,16 @@ export function PhysicsPage() {
       <div className="physics-dev__details">
         <section className="physics-dev__player physics-dev__player--p1">
           <h2>1P · 青</h2>
-          <p>W / A / S / D で移動、F で前方へ押す</p>
+          <p>W / A / S / D で移動、F で体当たり</p>
+          <p>検証値: 攻撃値 {TEST_ATTACK_VALUE.toFixed(1)} × 攻撃力倍率 {TEST_ATTACK_MULTIPLIERS.p1.toFixed(1)}</p>
+          <p>命中: {hits.p1} 回、追加インパルス: {lastImpulse.p1?.toFixed(1) ?? '—'}</p>
           <p>場外: {out.includes('p1') ? 'あり' : 'なし'}</p>
         </section>
         <section className="physics-dev__player physics-dev__player--p2">
           <h2>2P · 赤</h2>
-          <p>矢印キーで移動、Enter で前方へ押す</p>
+          <p>矢印キーで移動、Enter で体当たり</p>
+          <p>検証値: 攻撃値 {TEST_ATTACK_VALUE.toFixed(1)} × 攻撃力倍率 {TEST_ATTACK_MULTIPLIERS.p2.toFixed(1)}</p>
+          <p>命中: {hits.p2} 回、追加インパルス: {lastImpulse.p2?.toFixed(1) ?? '—'}</p>
           <p>場外: {out.includes('p2') ? 'あり' : 'なし'}</p>
         </section>
       </div>
@@ -144,7 +156,7 @@ export function PhysicsPage() {
         <p>コマ同士の接触開始: <strong>{contacts}</strong> 回</p>
         <button type="button" disabled={!ready && !error} onClick={reset}>最初から試す</button>
       </div>
-      <p className="physics-dev__note">F / Enter は物理検証用です。正式な A / B 攻撃や HP はこの画面では扱いません。</p>
+      <p className="physics-dev__note">F / Enter は物理検証用の体当たりです。前進と命中受付は0.1秒、復帰は0.2秒です。再攻撃は0.4秒以上経過し、復帰してから可能です。正式な A / B 攻撃や HP は扱いません。</p>
     </main>
   )
 }

@@ -18,6 +18,7 @@ import { getVolumeCentroid } from '../../analyze/reconstruction/centroid'
 import { reconstructQuickScan } from '../../analyze/reconstruction/quickScan'
 import { createWebGL2Engine } from '../../../lib/babylon/engine'
 import { enableHavok } from '../../../lib/babylon/havok'
+import { calculateKnockbackImpulse, TEST_ATTACK_MULTIPLIERS, TEST_ATTACK_VALUE } from './knockback'
 import { stepMovement, type MotionInput, type MovementState } from './movement'
 import { hasJustLeftRing, RING_RADIUS } from './ringExit'
 import { createSampleMask } from './sampleMask'
@@ -25,9 +26,21 @@ import { createSampleMask } from './sampleMask'
 const FIGHTER = 1
 const FLOOR_REGION = 2
 const MAX_ACCELERATION = 12
-const TEST_IMPULSE = 4.5
+const TEST_IMPULSE = 6.5
 const CONTACT_IMPULSE = 2
 const EXIT_IMPULSE = 1.2
+const ATTACK_FORWARD_MS = 100
+const ATTACK_MIN_INTERVAL_MS = 400
+const ATTACK_RETURN_MS = 200
+const ATTACKER_DRIVE_LOCK_MS = 180
+const DEFENDER_DRIVE_LOCK_MS = 250
+
+type TestAttack = {
+  expiresAt: number
+  consumed: boolean
+  origin: Vector3
+  retreat: { startedAt: number; from: Vector3; reachedTarget: boolean } | null
+}
 
 type Fighter = {
   mesh: Mesh
@@ -35,12 +48,19 @@ type Fighter = {
   movement: MovementState
   input: MotionInput
   out: boolean
+  attack: TestAttack | null
+  nextAttackAt: number
+  driveLockUntil: number
+  attackMultiplier: number
 }
 
-export type PhysicsBattleEvent = { type: 'contact' } | { type: 'out'; player: PlayerId }
+export type PhysicsBattleEvent =
+  | { type: 'contact' }
+  | { type: 'hit'; attacker: PlayerId; target: PlayerId; impulse: number }
+  | { type: 'out'; player: PlayerId }
 export type PhysicsBattle = {
   setInput: (player: PlayerId, input: MotionInput) => void
-  applyTestImpulse: (player: PlayerId) => void
+  triggerTestAttack: (player: PlayerId) => boolean
   dispose: () => void
 }
 
@@ -105,11 +125,15 @@ function createFighter(scene: Scene, player: PlayerId, reconstruction: ReturnTyp
     movement: { x: mesh.position.x, z: mesh.position.z, yaw, smoothedX: 0, smoothedY: 0 },
     input: { x: 0, y: 0 },
     out: false,
+    attack: null,
+    nextAttackAt: 0,
+    driveLockUntil: 0,
+    attackMultiplier: TEST_ATTACK_MULTIPLIERS[player],
   }
 }
 
-function drive(fighter: Fighter, seconds: number) {
-  if (fighter.out) return
+function drive(fighter: Fighter, seconds: number, now: number) {
+  if (fighter.out || fighter.attack?.retreat || now < fighter.driveLockUntil) return
   const body = fighter.aggregate.body
   const position = fighter.mesh.position
   const previousYaw = fighter.movement.yaw
@@ -133,6 +157,42 @@ function drive(fighter: Fighter, seconds: number) {
   body.applyForce(new Vector3(accelerationX, 0, accelerationZ), body.getObjectCenterWorld())
   body.setAngularVelocity(new Vector3(0, (next.yaw - previousYaw) / seconds, 0))
   fighter.movement = next
+}
+
+function updateAttackReturn(fighter: Fighter, now: number) {
+  const attack = fighter.attack
+  if (!attack || fighter.out) return
+  const body = fighter.aggregate.body
+  if (!attack.retreat && (attack.consumed || now >= attack.expiresAt)) {
+    attack.retreat = { startedAt: now, from: fighter.mesh.position.clone(), reachedTarget: false }
+    body.setLinearVelocity(Vector3.Zero())
+    body.setAngularVelocity(Vector3.Zero())
+    // 復帰中だけ剛体の位置を制御し、終了後は動的剛体へ戻す。
+    body.setMotionType(PhysicsMotionType.ANIMATED)
+  }
+  if (!attack.retreat) return
+  const progress = Math.min(1, (now - attack.retreat.startedAt) / ATTACK_RETURN_MS)
+  const blend = progress * progress * (3 - 2 * progress)
+  const target = Vector3.Lerp(attack.retreat.from, attack.origin, blend)
+  body.setTargetTransform(target, fighter.mesh.rotationQuaternion ?? Quaternion.Identity())
+  attack.retreat.reachedTarget = progress >= 1
+}
+
+function finishAttackReturn(fighter: Fighter) {
+  const attack = fighter.attack
+  if (!attack?.retreat?.reachedTarget || fighter.out) return
+  const body = fighter.aggregate.body
+  body.setMotionType(PhysicsMotionType.DYNAMIC)
+  body.setLinearVelocity(Vector3.Zero())
+  body.setAngularVelocity(Vector3.Zero())
+  fighter.movement = {
+    ...fighter.movement,
+    x: fighter.mesh.position.x,
+    z: fighter.mesh.position.z,
+    smoothedX: 0,
+    smoothedY: 0,
+  }
+  fighter.attack = null
 }
 
 /** #6 用の2体物理検証。React側は入力とイベント表示だけを担当する。 */
@@ -209,18 +269,58 @@ export async function mountPhysicsBattle(
     let contactArmed = true
     firstBody.setCollisionCallbackEnabled(true)
     firstBody.getCollisionObservable().add((event) => {
-      if (disposed || !contactArmed || activeFighters.p1.out || activeFighters.p2.out ||
-          event.collidedAgainst !== secondBody || event.type !== PhysicsEventType.COLLISION_STARTED) return
-      contactArmed = false
-      onEvent({ type: 'contact' })
+      if (disposed || activeFighters.p1.out || activeFighters.p2.out || event.collidedAgainst !== secondBody ||
+          (event.type !== PhysicsEventType.COLLISION_STARTED && event.type !== PhysicsEventType.COLLISION_CONTINUED)) return
       const p1 = firstBody.getObjectCenterWorld()
       const p2 = secondBody.getObjectCenterWorld()
       const direction = p2.subtract(p1)
       direction.y = 0
-      if (direction.lengthSquared() < 1e-8) direction.set(1, 0, 0)
+      if (direction.lengthSquared() < 1e-8) {
+        direction.set(Math.sin(activeFighters.p1.movement.yaw), 0, Math.cos(activeFighters.p1.movement.yaw))
+      }
       direction.normalize()
-      firstBody.applyImpulse(direction.scale(-CONTACT_IMPULSE), p1)
-      secondBody.applyImpulse(direction.scale(CONTACT_IMPULSE), p2)
+      const now = performance.now()
+      const hits = (['p1', 'p2'] as const).filter((player) => {
+        const fighter = activeFighters[player]
+        const attack = fighter.attack
+        if (!attack || attack.consumed || now >= attack.expiresAt) return false
+        const towardTarget = player === 'p1' ? direction : direction.scale(-1)
+        const forward = new Vector3(Math.sin(fighter.movement.yaw), 0, Math.cos(fighter.movement.yaw))
+        return Vector3.Dot(forward, towardTarget) > 0
+      })
+
+      if (event.type === PhysicsEventType.COLLISION_STARTED && contactArmed) {
+        contactArmed = false
+        onEvent({ type: 'contact' })
+        firstBody.applyImpulse(direction.scale(-CONTACT_IMPULSE), p1)
+        secondBody.applyImpulse(direction.scale(CONTACT_IMPULSE), p2)
+      }
+
+      // 双方の命中を先に確定し、片方への反動がもう片方の判定に影響しないようにする。
+      for (const player of hits) {
+        const fighter = activeFighters[player]
+        fighter.attack!.consumed = true
+        const body = fighter.aggregate.body
+        const forward = new Vector3(Math.sin(fighter.movement.yaw), 0, Math.cos(fighter.movement.yaw))
+        const velocity = body.getLinearVelocity()
+        const forwardSpeed = Math.max(0, Vector3.Dot(velocity, forward))
+        if (forwardSpeed > 0) body.setLinearVelocity(velocity.subtract(forward.scale(forwardSpeed)))
+      }
+      for (const player of hits) {
+        const target = player === 'p1' ? 'p2' : 'p1'
+        const attacker = activeFighters[player]
+        const defender = activeFighters[target]
+        const targetBody = defender.aggregate.body
+        const targetCenter = targetBody.getObjectCenterWorld()
+        const outward = player === 'p1' ? direction : direction.scale(-1)
+        const impulse = calculateKnockbackImpulse({ attackValue: TEST_ATTACK_VALUE, attackMultiplier: attacker.attackMultiplier })
+        targetBody.applyImpulse(outward.scale(impulse), targetCenter)
+        attacker.driveLockUntil = Math.max(attacker.driveLockUntil, now + ATTACKER_DRIVE_LOCK_MS)
+        defender.driveLockUntil = Math.max(defender.driveLockUntil, now + DEFENDER_DRIVE_LOCK_MS)
+        attacker.movement.smoothedX = attacker.movement.smoothedY = 0
+        defender.movement.smoothedX = defender.movement.smoothedY = 0
+        onEvent({ type: 'hit', attacker: player, target, impulse })
+      }
     })
 
     const ambient = new HemisphericLight('ambient', Vector3.Up(), scene)
@@ -239,8 +339,11 @@ export async function mountPhysicsBattle(
     engine.runRenderLoop(() => {
       if (disposed || signal?.aborted) return
       const seconds = Math.min(Math.max(engine.getDeltaTime() / 1000, 1 / 240), 0.05)
-      drive(activeFighters.p1, seconds)
-      drive(activeFighters.p2, seconds)
+      const now = performance.now()
+      updateAttackReturn(activeFighters.p1, now)
+      updateAttackReturn(activeFighters.p2, now)
+      drive(activeFighters.p1, seconds, now)
+      drive(activeFighters.p2, seconds, now)
       scene.render()
       const separationAfterStep = Math.hypot(
         activeFighters.p1.mesh.position.x - activeFighters.p2.mesh.position.x,
@@ -254,12 +357,19 @@ export async function mountPhysicsBattle(
         if (!hasJustLeftRing(center.x, center.z, fighter.out)) continue
         fighter.out = true
         fighter.input = { x: 0, y: 0 }
+        if (fighter.attack?.retreat) {
+          fighter.aggregate.body.setMotionType(PhysicsMotionType.DYNAMIC)
+          fighter.aggregate.body.setLinearVelocity(Vector3.Zero())
+        }
+        fighter.attack = null
         fighter.aggregate.shape.filterCollideMask = FIGHTER
         // 接地中の接触ペアは Havok に残るため、外向きの運動で床から確実に離す。
         const outward = new Vector3(center.x, 0, center.z).normalize().scale(EXIT_IMPULSE)
         fighter.aggregate.body.applyImpulse(outward, center)
         onEvent({ type: 'out', player })
       }
+      finishAttackReturn(activeFighters.p1)
+      finishAttackReturn(activeFighters.p2)
 
       const p1 = activeFighters.p1.mesh.position
       const p2 = activeFighters.p2.mesh.position
@@ -278,11 +388,20 @@ export async function mountPhysicsBattle(
           y: Math.max(-1, Math.min(1, input.y)),
         }
       },
-      applyTestImpulse: (player) => {
+      triggerTestAttack: (player) => {
         const fighter = activeFighters[player]
-        if (fighter.out) return
+        const now = performance.now()
+        if (fighter.out || fighter.attack || now < fighter.nextAttackAt) return false
+        fighter.attack = {
+          expiresAt: now + ATTACK_FORWARD_MS,
+          consumed: false,
+          origin: fighter.mesh.position.clone(),
+          retreat: null,
+        }
+        fighter.nextAttackAt = now + ATTACK_MIN_INTERVAL_MS
         const direction = new Vector3(Math.sin(fighter.movement.yaw), 0, Math.cos(fighter.movement.yaw))
         fighter.aggregate.body.applyImpulse(direction.scale(TEST_IMPULSE), fighter.aggregate.body.getObjectCenterWorld())
+        return true
       },
       dispose,
     }
