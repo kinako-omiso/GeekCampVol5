@@ -40,6 +40,12 @@ export const router = createBrowserRouter([
     }),
   },
   {
+    path: '/dev/battle-hud',
+    lazy: async () => ({
+      Component: (await import('../dev/battle-hud/BattleHudPage')).BattleHudPage,
+    }),
+  },
+  {
     path: '/dev/visual-hull',
     lazy: async () => ({
       Component: (await import('../dev/visual-hull/VisualHullPage')).default,
