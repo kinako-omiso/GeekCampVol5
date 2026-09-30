@@ -1,47 +1,272 @@
-import { useState } from 'react'
-import { LobbyScreen, type LobbyPlayerStatus } from '../../features/lobby/LobbyScreen'
-import type { PlayerId } from '../../../../../docs/design/tokens'
+import { useEffect, useRef, useState } from 'react'
+import type {
+  AssetManifest,
+  MotionMessage,
+  PlayerSlot,
+} from '@gikcamp/protocol'
+import {
+  LobbyScreen,
+  type LobbyPlayerStatus,
+} from '../../features/lobby/LobbyScreen.tsx'
+import { HostPeerSession } from '../../lib/peer/hostPeerSession.ts'
+import { buildControllerUrl } from '../../lib/peer/pairing.ts'
 import '../../../../../docs/design/tokens.css'
 import './host.css'
 
-// モック：ボタンを押すたびに 未接続 → 接続 → センサー → 準備 → 未接続 と進める
-const MOCK_STEPS: LobbyPlayerStatus[] = [
-  { connected: false, sensorReady: false, ready: false },
-  { connected: true, sensorReady: false, ready: false },
-  { connected: true, sensorReady: true, ready: false },
-  { connected: true, sensorReady: true, ready: true },
-]
+type PlayerConnections = Record<
+  PlayerSlot,
+  string | null
+>
 
-// スマホで開く URL。ControllerFlow は ?p=2 で 2P になる
-function joinUrl(player: PlayerId) {
-  return `${window.location.origin}/controller?p=${player === 'p2' ? 2 : 1}`
+type ControllerUrls = Record<PlayerSlot, string>
+type PlayerValue<T> = Record<PlayerSlot, T>
+
+type ReceivedPhoto = {
+  manifest: AssetManifest
+  url: string
 }
 
-/**
- * PC（/host）の画面遷移。いまはロビーだけ。
- * モック：スマホとはまだつながないので、画面上のボタンで接続状態を進める。
- */
-export function HostFlow() {
-  const [mockStep, setMockStep] = useState<Record<PlayerId, number>>({ p1: 0, p2: 0 })
+// 接続確認用定数
+const SHOW_HOST_DIAGNOSTICS = true
 
-  const advance = (player: PlayerId) =>
-    setMockStep((prev) => ({ ...prev, [player]: (prev[player] + 1) % MOCK_STEPS.length }))
+const createPlayerStatus = (
+  connected: boolean,
+): LobbyPlayerStatus => ({
+  connected,
+  sensorReady: false,
+  ready: false,
+})
+
+export function HostFlow() {
+  const [controllerUrls, setControllerUrls] =
+    useState<ControllerUrls | null>(null)
+
+  const [players, setPlayers] =
+    useState<PlayerConnections>({
+      1: null,
+      2: null,
+    })
+
+  const [error, setError] = useState('')
+  const [motions, setMotions] =
+    useState<PlayerValue<MotionMessage | null>>({
+      1: null,
+      2: null,
+    })
+  const [buttons, setButtons] =
+    useState<PlayerValue<'a' | 'b' | null>>({
+      1: null,
+      2: null,
+    })
+  const [assetProgress, setAssetProgress] =
+    useState<PlayerValue<number>>({
+      1: 0,
+      2: 0,
+    })
+  const [photos, setPhotos] =
+    useState<Partial<Record<PlayerSlot, ReceivedPhoto>>>({})
+  const photoUrlsRef =
+    useRef<Partial<Record<PlayerSlot, string>>>({})
+
+  useEffect(() => {
+    const photoUrls = photoUrlsRef.current
+
+    const resetPlayer = (slot: PlayerSlot) => {
+      const photoUrl = photoUrls[slot]
+
+      if (photoUrl !== undefined) {
+        URL.revokeObjectURL(photoUrl)
+        delete photoUrls[slot]
+      }
+
+      setPlayers((current) => ({
+        ...current,
+        [slot]: null,
+      }))
+      setMotions((current) => ({
+        ...current,
+        [slot]: null,
+      }))
+      setButtons((current) => ({
+        ...current,
+        [slot]: null,
+      }))
+      setAssetProgress((current) => ({
+        ...current,
+        [slot]: 0,
+      }))
+      setPhotos((current) => {
+        const next = { ...current }
+        delete next[slot]
+        return next
+      })
+    }
+
+    const session = new HostPeerSession({
+      ready: (peerId, metadata) => {
+        setControllerUrls({
+          1: buildControllerUrl(
+            window.location.origin,
+            peerId,
+            metadata[1],
+          ),
+          2: buildControllerUrl(
+            window.location.origin,
+            peerId,
+            metadata[2],
+          ),
+        })
+      },
+
+      playerConnected: (
+        slot,
+        controllerPeerId,
+      ) => {
+        setPlayers((current) => ({
+          ...current,
+          [slot]: controllerPeerId,
+        }))
+      },
+
+      playerDisconnected: (slot) => {
+        resetPlayer(slot)
+      },
+
+      motionReceived: (slot, message) => {
+        setMotions((current) => ({
+          ...current,
+          [slot]: message,
+        }))
+      },
+
+      buttonPressed: (slot, button) => {
+        setButtons((current) => ({
+          ...current,
+          [slot]: button,
+        }))
+      },
+
+      assetProgress: (slot, receivedBytes, totalBytes) => {
+        setAssetProgress((current) => ({
+          ...current,
+          [slot]: receivedBytes / totalBytes,
+        }))
+      },
+
+      assetReceived: (slot, manifest, blob) => {
+        const previousUrl = photoUrls[slot]
+        if (previousUrl !== undefined) {
+          URL.revokeObjectURL(previousUrl)
+        }
+
+        const url = URL.createObjectURL(blob)
+        photoUrls[slot] = url
+        setPhotos((current) => ({
+          ...current,
+          [slot]: { manifest, url },
+        }))
+      },
+
+      error: (peerError) => {
+        setError(peerError.message)
+      },
+    })
+
+    return () => {
+      session.destroy()
+      for (const url of Object.values(photoUrls)) {
+        if (url !== undefined) URL.revokeObjectURL(url)
+      }
+    }
+  }, [])
+
+  if (error !== '') {
+    return (
+      <main>
+        <h1>スマホを接続</h1>
+        <p role="alert">{error}</p>
+      </main>
+    )
+  }
+
+  if (controllerUrls === null) {
+    return (
+      <main>
+        <h1>スマホを接続</h1>
+        <p>QRコードを準備中...</p>
+      </main>
+    )
+  }
 
   return (
     <>
       <LobbyScreen
-        joinUrls={{ p1: joinUrl('p1'), p2: joinUrl('p2') }}
-        statuses={{ p1: MOCK_STEPS[mockStep.p1], p2: MOCK_STEPS[mockStep.p2] }}
+        joinUrls={{
+          p1: controllerUrls[1],
+          p2: controllerUrls[2],
+        }}
+        statuses={{
+          p1: {
+            ...createPlayerStatus(players[1] !== null),
+            sensorReady: motions[1] !== null,
+            ready: motions[1] !== null,
+          },
+          p2: {
+            ...createPlayerStatus(players[2] !== null),
+            sensorReady: motions[2] !== null,
+            ready: motions[2] !== null,
+          },
+        }}
       />
 
-      <div className="host-mock">
-        <button type="button" onClick={() => advance('p1')}>
-          モック：1P ▶
-        </button>
-        <button type="button" onClick={() => advance('p2')}>
-          モック：2P ▶
-        </button>
-      </div>
+      {SHOW_HOST_DIAGNOSTICS && (
+        <aside
+          className="host-diagnostics"
+          aria-label="通信確認"
+        >
+          {([1, 2] as const).map((slot) => (
+            <section
+              key={slot}
+              className="host-diagnostics__player"
+            >
+              <strong>Player {slot}</strong>
+
+              <span>
+                Peer ID: {players[slot] ?? '未接続'}
+              </span>
+
+              <span>
+                傾き:
+                {' '}
+                {motions[slot] === null
+                  ? '-'
+                  : `x=${motions[slot].x.toFixed(2)}, y=${motions[slot].y.toFixed(2)}`}
+              </span>
+
+              <span>
+                ボタン:
+                {' '}
+                {buttons[slot]?.toUpperCase() ?? '-'}
+              </span>
+
+              <span>
+                写真:
+                {' '}
+                {photos[slot] === undefined
+                  ? `${Math.round(assetProgress[slot] * 100)}%`
+                  : `受信済み ${photos[slot].manifest.width}×${photos[slot].manifest.height}`}
+              </span>
+
+              {photos[slot]?.manifest.kind === 'photo' && (
+                <img
+                  src={photos[slot].url}
+                  alt={`Player ${slot}から受信した写真`}
+                />
+              )}
+            </section>
+          ))}
+        </aside>
+      )}
     </>
   )
 }
