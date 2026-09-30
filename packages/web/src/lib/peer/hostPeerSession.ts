@@ -17,6 +17,8 @@ import { createPairingMetadata } from './pairing.ts'
 
 const HEARTBEAT_INTERVAL_MS = 2_000
 const CONNECTION_TIMEOUT_MS = 8_000
+// テスト用にasset転送を拒否する
+const FORCE_ASSET_FAILURE = true
 
 type PairingMetadataBySlot = Record<PlayerSlot, PairingMetadata>
 type PendingTransfer = {
@@ -250,6 +252,14 @@ export class HostPeerSession {
         message.manifest.chunkCount !== expected
       ) {
         this.rejectAsset(connection, message.manifest.transferId, '転送情報が不正です')
+        return
+      }
+      if (FORCE_ASSET_FAILURE) {
+        this.rejectAsset(
+          connection,
+          message.manifest.transferId,
+          'テスト用に写真転送を失敗させました',
+        )
         return
       }
 
