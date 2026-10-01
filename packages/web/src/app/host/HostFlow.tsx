@@ -8,6 +8,7 @@ import type {
 import { HostStage } from '../../components/HostStage'
 import { ScanProgressScreen, type ScanStatus } from '../../features/analyze/ScanProgressScreen'
 import { BattleHud } from '../../features/battle/ui/BattleHud'
+import { EntranceScreen } from '../../features/entrance/EntranceScreen'
 import { LobbyScreen, type LobbyPlayerStatus } from '../../features/lobby/LobbyScreen'
 import { ResultScreen } from '../../features/result/ResultScreen'
 import { HostPeerSession } from '../../lib/peer/hostPeerSession.ts'
@@ -19,7 +20,7 @@ import eraserUrl from '../../../../../docs/design/assets/sample-scannee-eraser.s
 import '../../../../../docs/design/tokens.css'
 import './host.css'
 
-type Step = 'lobby' | 'scan' | 'battle' | 'result'
+type Step = 'lobby' | 'scan' | 'entrance' | 'battle' | 'result'
 
 // モック：スキャンの進み方。解析は1人ずつなので、2P は 1P の解析が終わるまで待つ
 const MOCK_SCAN_STEPS: Record<PlayerId, ScanStatus>[] = [
@@ -271,6 +272,15 @@ export function HostFlow() {
           }}
         />
       )}
+      {step === 'entrance' && (
+        <EntranceScreen
+          fighters={{
+            p1: { look: MOCK_SCANNEES.p1, stats: MOCK_STATS.p1 },
+            p2: { look: MOCK_SCANNEES.p2, stats: MOCK_STATS.p2 },
+          }}
+          onDone={() => setStep('battle')}
+        />
+      )}
       {step === 'battle' && (
         <HostStage>
           <BattleHud
@@ -295,9 +305,14 @@ export function HostFlow() {
         {step === 'scan' && (
           <button
             type="button"
-            onClick={() => (scanIsLast ? setStep('battle') : setScanStep((current) => current + 1))}
+            onClick={() => (scanIsLast ? setStep('entrance') : setScanStep((current) => current + 1))}
           >
-            {scanIsLast ? 'モック：たいせんへ ▶' : 'モック：すすめる ▶'}
+            {scanIsLast ? 'モック：とうじょうへ ▶' : 'モック：すすめる ▶'}
+          </button>
+        )}
+        {step === 'entrance' && (
+          <button type="button" onClick={() => setStep('battle')}>
+            モック：とばす ▶
           </button>
         )}
         {step === 'battle' && (
