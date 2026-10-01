@@ -75,6 +75,7 @@ export function PeerController({ hostId }: { hostId: string }) {
     const normalize = createTiltNormalizer(baseline)
     let latest: TiltVector = { x: 0, y: 0 }
     let lastSampleAt = 0
+    let sequence = 0
     const unsubscribe = subscribeOrientation((sample) => {
       const vector = normalize(sample, getScreenAngle())
       if (!vector) {
@@ -89,7 +90,13 @@ export function PeerController({ hostId }: { hostId: string }) {
     const timer = window.setInterval(() => {
       const vector = performance.now() - lastSampleAt <= 250 ? latest : { x: 0, y: 0 }
       try {
-        clientRef.current?.send(hostId, { type: 'motion', x: vector.x, y: vector.y })
+        clientRef.current?.send(hostId, {
+          type: 'motion',
+          sequence,
+          x: vector.x,
+          y: vector.y,
+        })
+        sequence += 1
       } catch (cause) {
         setCommunicationError(cause instanceof Error ? cause.message : '傾きを送信できませんでした')
       }

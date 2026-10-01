@@ -17,3 +17,37 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+.host-diagnostics {
+  position: fixed;
+  left: 50%;
+  bottom: 8px;
+  z-index: 210;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 8px;
+  width: min(720px, calc(100vw - 16px));
+  transform: translateX(-50%);
+  font: 12px/1.35 monospace;
+}
+
+.host-diagnostics__player {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  padding: 8px;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.72);
+  color: #fff;
+}
+
+.host-diagnostics__player img {
+  position: absolute;
+  bottom: 100%;
+  width: 96px;
+  max-height: 72px;
+  object-fit: contain;
+  border: 2px solid #fff;
+  background: #000;
+}

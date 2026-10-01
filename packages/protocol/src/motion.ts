@@ -1,14 +1,24 @@
-/** スマホ側で補正した移動入力。x は画面右、y は画面奥が正。 */
-export type MotionMessage = {
-  type: 'motion'
-  x: number
-  y: number
-}
+import { z } from 'zod'
 
-export function isMotionMessage(value: unknown): value is MotionMessage {
-  if (typeof value !== 'object' || value === null) return false
-  const message = value as Record<string, unknown>
-  return message.type === 'motion' &&
-    typeof message.x === 'number' && Number.isFinite(message.x) && Math.abs(message.x) <= 1 &&
-    typeof message.y === 'number' && Number.isFinite(message.y) && Math.abs(message.y) <= 1
+export const motionMessageSchema = z.object({
+  type: z.literal('motion'),
+
+  // unordered通信で古い値を捨てるための通し番号
+  sequence: z.number().int().nonnegative(),
+
+  // 右方向が正。範囲は-1〜1
+  x: z.number().finite().min(-1).max(1),
+
+  // 奥方向が正。範囲は-1〜1
+  y: z.number().finite().min(-1).max(1),
+})
+
+export type MotionMessage = z.infer<
+  typeof motionMessageSchema
+>
+
+export function isMotionMessage(
+  value: unknown,
+): value is MotionMessage {
+  return motionMessageSchema.safeParse(value).success
 }

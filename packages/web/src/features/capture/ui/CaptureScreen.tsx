@@ -13,12 +13,18 @@ import './capture.css'
 
 type Props = {
   player: PlayerId
+  onSendPhoto?: (
+    photo: Blob,
+    dimensions: { width: number; height: number },
+    onProgress: (ratio: number) => void,
+  ) => Promise<void>
 }
 
 type Phase = 'shoot' | 'sending' | 'sent'
 
 // モック：送信にかかったことにする時間（本番は PeerJS の送信完了で進める）
 const MOCK_SEND_MS = 1600
+const MAX_PHOTO_SIDE = 2048
 
 const TIPS = [
   { icon: presetIcon, label: '1こだけ' },
@@ -30,11 +36,13 @@ const TIPS = [
  * スマホ：撮影画面（モック）。
  * カメラのプレビューとシャッター → 送信中 → 送信完了。範囲指定（ぬりぬり）と送信は後続の issue で作る。
  */
-export function CaptureScreen({ player }: Props) {
+export function CaptureScreen({ player, onSendPhoto }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [phase, setPhase] = useState<Phase>('shoot')
   const [photo, setPhoto] = useState<string | null>(null)
   const [cameraFailed, setCameraFailed] = useState(false)
+  const [sendProgress, setSendProgress] = useState(0)
+  const [sendError, setSendError] = useState('')
   // HTTPS でない・非対応ブラウザではカメラを使えない
   const cameraSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
   const cameraError = !cameraSupported || cameraFailed
@@ -67,21 +75,58 @@ export function CaptureScreen({ player }: Props) {
 
   // モック：一定時間たったら送信完了にする
   useEffect(() => {
-    if (phase !== 'sending') return
+    if (phase !== 'sending' || onSendPhoto !== undefined) return
     const timer = window.setTimeout(() => setPhase('sent'), MOCK_SEND_MS)
     return () => window.clearTimeout(timer)
-  }, [phase])
+  }, [phase, onSendPhoto])
 
-  const handleShutter = () => {
+  const handleShutter = async () => {
     const video = videoRef.current
-    if (video && video.videoWidth > 0) {
-      const canvas = document.createElement('canvas')
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      canvas.getContext('2d')?.drawImage(video, 0, 0)
-      setPhoto(canvas.toDataURL('image/jpeg', 0.85))
+    if (!video || video.videoWidth <= 0) {
+      return
     }
+
+    const canvas = document.createElement('canvas')
+    const scale = Math.min(
+      1,
+      MAX_PHOTO_SIDE /
+        Math.max(video.videoWidth, video.videoHeight),
+    )
+    canvas.width = Math.round(video.videoWidth * scale)
+    canvas.height = Math.round(video.videoHeight * scale)
+    canvas
+      .getContext('2d')
+      ?.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    const blob = await canvasToBlob(canvas)
+    setPhoto(canvas.toDataURL('image/jpeg', 0.85))
+    setSendProgress(0)
+    setSendError('')
     setPhase('sending')
+
+    if (onSendPhoto === undefined) {
+      return
+    }
+
+    try {
+      await onSendPhoto(
+        blob,
+        {
+          width: canvas.width,
+          height: canvas.height,
+        },
+        setSendProgress,
+      )
+      setPhase('sent')
+    } catch (error) {
+      setPhoto(null)
+      setPhase('shoot')
+      setSendError(
+        error instanceof Error
+          ? error.message
+          : '写真を送信できませんでした',
+      )
+    }
   }
 
   if (phase === 'sent') {
@@ -113,6 +158,11 @@ export function CaptureScreen({ player }: Props) {
             <video ref={videoRef} className="capture__media" autoPlay playsInline muted />
           )}
           {cameraError && !photo && <div className="capture__camera-error">カメラが つかえないよ</div>}
+          {sendError !== '' && (
+            <div className="capture__send-error" role="alert">
+              {sendError}
+            </div>
+          )}
 
           {phase === 'shoot' && (
             <>
@@ -154,7 +204,18 @@ export function CaptureScreen({ player }: Props) {
           <Svg markup={sendIcon} className="capture__sending-icon" />
           <div className="ss-display capture__sending-title">おくってるよ…</div>
           <div className="capture__sending-bar">
-            <div className="capture__sending-fill" style={{ animationDuration: `${MOCK_SEND_MS}ms` }} />
+            <div
+              className={
+                onSendPhoto === undefined
+                  ? 'capture__sending-fill'
+                  : 'capture__sending-fill is-live'
+              }
+              style={
+                onSendPhoto === undefined
+                  ? { animationDuration: `${MOCK_SEND_MS}ms` }
+                  : { width: `${sendProgress * 100}%` }
+              }
+            />
           </div>
         </div>
       )}
@@ -164,4 +225,20 @@ export function CaptureScreen({ player }: Props) {
 
 function stopStream(stream: MediaStream) {
   stream.getTracks().forEach((track) => track.stop())
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob === null) {
+          reject(new Error('写真の変換に失敗しました'))
+        } else {
+          resolve(blob)
+        }
+      },
+      'image/jpeg',
+      0.85,
+    )
+  })
 }

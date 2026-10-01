@@ -1,30 +1,164 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { CaptureScreen } from '../../features/capture/ui/CaptureScreen'
 import { JoinScreen } from '../../features/join/JoinScreen'
 import { OrientScreen } from '../../features/orient/OrientScreen'
 import { PadScreen } from '../../features/pad/PadScreen'
-import type { Baseline } from '../../lib/sensor'
+import { ControllerPeerSession } from '../../lib/peer/controllerPeerSession.ts'
+import { parseControllerPairing } from '../../lib/peer/pairing.ts'
+import {
+  createTiltNormalizer,
+  getScreenAngle,
+  subscribeOrientation,
+  type Baseline,
+} from '../../lib/sensor'
 import type { PlayerId } from '../../../../../docs/design/tokens'
 import '../../../../../docs/design/tokens.css'
 import './controller.css'
 
 type Step = 'join' | 'capture' | 'orient' | 'pad'
 
-const STEPS: Step[] = ['join', 'capture', 'orient', 'pad']
+type ConnectionState =
+  | 'connecting'
+  | 'connected'
+  | 'rejected'
+  | 'disconnected'
 
-/**
- * スマホ（/controller）の画面遷移。接続 → 撮影 → 向き調整 → パッド。
- * モック：PC とはまだつながないので、画面上の「つぎへ」で進める。プレイヤーは ?p=2 で 2P になる。
- */
+const STEPS: Step[] = [
+  'join',
+  'capture',
+  'orient',
+  'pad',
+]
+
 export function ControllerFlow() {
   const [searchParams] = useSearchParams()
-  const player: PlayerId = searchParams.get('p') === '2' ? 'p2' : 'p1'
-  const [step, setStep] = useState<Step>('join')
-  // 基準姿勢。パッドで傾きを送るときに使う
-  const baselineRef = useRef<Baseline | null>(null)
+  const query = searchParams.toString()
 
-  const goNext = () => setStep((current) => STEPS[(STEPS.indexOf(current) + 1) % STEPS.length])
+  const [step, setStep] = useState<Step>('join')
+  const [connectionState, setConnectionState] =
+    useState<ConnectionState>('connecting')
+  const [connectionMessage, setConnectionMessage] =
+    useState('PCに接続しています')
+
+  const sessionRef = useRef<ControllerPeerSession | null>(null)
+  const [baseline, setBaseline] = useState<Baseline | null>(null)
+
+  const pairing = parseControllerPairing(
+    new URLSearchParams(query),
+  )
+
+  const player: PlayerId =
+    pairing?.metadata.slot === 1 ? 'p1' : 'p2'
+
+  useEffect(() => {
+    const parsedPairing = parseControllerPairing(
+      new URLSearchParams(query),
+    )
+
+    if (parsedPairing === null) {
+      return
+    }
+
+    const session = new ControllerPeerSession(
+      parsedPairing.hostPeerId,
+      parsedPairing.metadata,
+      {
+        connected: () => {
+          setConnectionState('connected')
+          setConnectionMessage('')
+        },
+
+        rejected: (reason) => {
+          setStep('join')
+          setBaseline(null)
+          setConnectionState('rejected')
+          setConnectionMessage(reason)
+        },
+
+        disconnected: () => {
+          setStep('join')
+          setBaseline(null)
+          setConnectionState('disconnected')
+          setConnectionMessage('PCとの接続が切れました')
+        },
+
+        error: (error) => {
+          setConnectionMessage(error.message)
+        },
+      },
+    )
+    sessionRef.current = session
+
+    return () => {
+      if (sessionRef.current === session) {
+        sessionRef.current = null
+      }
+      session.destroy()
+    }
+  }, [query])
+
+  useEffect(() => {
+    if (baseline === null || connectionState !== 'connected') {
+      return
+    }
+
+    const normalize = createTiltNormalizer(baseline)
+    let lastSentAt = -Infinity
+
+    return subscribeOrientation((orientation) => {
+      const now = performance.now()
+
+      if (now - lastSentAt < 1_000 / 30) {
+        return
+      }
+
+      const motion = normalize(
+        orientation,
+        getScreenAngle(),
+      )
+
+      if (motion === null) {
+        return
+      }
+
+      lastSentAt = now
+      sessionRef.current?.sendMotion({
+        x: motion.x,
+        y: motion.y,
+      })
+    })
+  }, [baseline, connectionState])
+
+  const goNext = () => {
+    setStep((current) => {
+      const currentIndex = STEPS.indexOf(current)
+      return STEPS[(currentIndex + 1) % STEPS.length]
+    })
+  }
+
+  if (pairing === null) {
+    return (
+      <main>
+        <h1>PCに接続</h1>
+        <p>QRコードの情報が不正です</p>
+        <p>PCに表示されたQRコードから開いてください。</p>
+      </main>
+    )
+  }
+
+  if (connectionState !== 'connected') {
+    return (
+      <main>
+        <h1>PCに接続</h1>
+        <p>{connectionMessage}</p>
+
+        {connectionState === 'disconnected' && (
+          <p>PCに表示されたQRコードを読み直してください。</p>
+        )}
+      </main>
+    )
+  }
 
   return (
     <>
@@ -32,15 +166,55 @@ export function ControllerFlow() {
         <JoinScreen
           player={player}
           onCalibrated={(baseline) => {
-            baselineRef.current = baseline
+            setBaseline(baseline)
           }}
         />
       )}
-      {step === 'capture' && <CaptureScreen player={player} />}
-      {step === 'orient' && <OrientScreen player={player} />}
-      {step === 'pad' && <PadScreen player={player} />}
 
-      <button type="button" className="controller-mock-next" onClick={goNext}>
+      {step === 'capture' && (
+        <CaptureScreen
+          player={player}
+          onSendPhoto={(
+            photo,
+            dimensions,
+            onProgress,
+          ) => {
+            const session = sessionRef.current
+
+            if (session === null) {
+              return Promise.reject(
+                new Error('PCと接続されていません'),
+              )
+            }
+
+            return session.sendPhoto(
+              photo,
+              dimensions,
+              onProgress,
+            )
+          }}
+        />
+      )}
+
+      {step === 'orient' && (
+        <OrientScreen player={player} />
+      )}
+
+      {step === 'pad' && (
+        <PadScreen
+          player={player}
+          connected={connectionState === 'connected'}
+          onAttack={(button) => {
+            sessionRef.current?.sendAttack(button)
+          }}
+        />
+      )}
+
+      <button
+        type="button"
+        className="controller-mock-next"
+        onClick={goNext}
+      >
         モック：つぎへ ▶
       </button>
     </>
