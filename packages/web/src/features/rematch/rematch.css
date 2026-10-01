@@ -1,0 +1,171 @@
+/* 見本：docs/design/screens/phone-05-result.html（寸法は 844×390 基準の --u） */
+.rematch {
+  display: flex;
+  flex-direction: column;
+}
+
+.rematch__cloud { left: calc(var(--u) * -70); top: calc(var(--u) * 280); width: calc(var(--u) * 300); }
+
+/* ---- 上：プレイヤーと見出し ---- */
+.rematch__head {
+  position: relative;
+  flex-shrink: 0;
+  height: calc(var(--u) * 92);
+}
+.rematch__player {
+  position: absolute;
+  left: calc(var(--u) * 24);
+  top: calc(var(--u) * 18);
+  font-size: calc(var(--u) * 36);
+}
+.rematch__title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--u) * 20);
+  margin: 0;
+  font-size: calc(var(--u) * 44);
+  /* index.css の h1 の指定（色・字間・太さ）を打ち消す */
+  font-weight: 400;
+  letter-spacing: normal;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ---- 2択のボタン ---- */
+.rematch__picks {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--u) * 16);
+  padding: 0 calc(var(--u) * 16) calc(var(--u) * 22);
+}
+.rematch__pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 6);
+  min-width: 0;
+  box-sizing: border-box;
+  border: calc(var(--u) * 7) solid var(--ss-ink);
+  border-radius: calc(var(--u) * 36);
+  box-shadow: 0 calc(var(--u) * 10) 0 var(--ss-ink);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.rematch__pick:active:not(:disabled) {
+  transform: translateY(calc(var(--u) * 8));
+  box-shadow: 0 calc(var(--u) * 2) 0 var(--ss-ink);
+}
+.rematch__pick:disabled { cursor: default; }
+.rematch__pick--again { background: var(--ss-sun); }
+.rematch__pick--rescan { background: var(--ss-cream); }
+
+.rematch__pick-title { font-size: calc(var(--u) * 38); }
+.rematch__pick-sub { font-size: calc(var(--u) * 22); }
+
+/* 絵の箱（150×118） */
+.rematch__art {
+  position: relative;
+  width: calc(var(--u) * 150);
+  height: calc(var(--u) * 118);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rematch__art--again { animation: rematch-bob 1.4s ease-in-out infinite; }
+.rematch__scannee {
+  left: 0;
+  top: 0;
+  width: calc(var(--u) * 130);
+  height: calc(var(--u) * 118);
+}
+.rematch__badge {
+  position: absolute;
+  right: calc(var(--u) * -4);
+  bottom: calc(var(--u) * -2);
+  width: calc(var(--u) * 54);
+  height: calc(var(--u) * 54);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--ss-cream);
+  border: calc(var(--u) * 5) solid var(--ss-ink);
+  color: var(--ss-ink);
+}
+.rematch__badge-icon { width: calc(var(--u) * 32); height: calc(var(--u) * 32); }
+.rematch__badge-icon svg { stroke-width: 2.8; }
+
+.rematch__camera {
+  width: calc(var(--u) * 104);
+  height: calc(var(--u) * 104);
+  color: var(--ss-ink);
+}
+.rematch__camera svg { stroke-width: 2; }
+.rematch__spark {
+  position: absolute;
+  right: calc(var(--u) * 4);
+  top: 0;
+  width: calc(var(--u) * 36);
+  height: calc(var(--u) * 36);
+  animation: rematch-twinkle 1.3s ease-in-out infinite;
+}
+
+/* ---- 選んだあと（相手待ち） ---- */
+.rematch__waiting {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 34);
+  background: color-mix(in srgb, var(--ss-ink) 80%, transparent);
+}
+.rematch__chosen {
+  width: calc(var(--u) * 170);
+  height: calc(var(--u) * 170);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--ss-sun);
+  border: calc(var(--u) * 8) solid var(--ss-ink);
+  box-shadow: 0 calc(var(--u) * 10) 0 var(--ss-ink);
+  color: var(--ss-ink);
+  animation: ss-pop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.rematch__chosen-icon { width: calc(var(--u) * 96); height: calc(var(--u) * 96); }
+.rematch__chosen-icon svg { stroke-width: 2.6; }
+.rematch__waiting-text { display: flex; flex-direction: column; gap: calc(var(--u) * 16); }
+.rematch__ok { font-size: calc(var(--u) * 96); color: var(--ss-sun); }
+.rematch__waiting-sub {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 14);
+  font-size: calc(var(--u) * 30);
+}
+.rematch__dots { display: flex; gap: calc(var(--u) * 8); }
+.rematch__dots span {
+  width: calc(var(--u) * 12);
+  height: calc(var(--u) * 12);
+  border-radius: 50%;
+  background: #fff;
+  animation: rematch-blink 1.2s infinite;
+}
+.rematch__dots span:nth-child(2) { animation-delay: 0.2s; }
+.rematch__dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* ---- 動き（見本と同じ） ---- */
+@keyframes rematch-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--u) * -8)); } }
+@keyframes rematch-twinkle {
+  0%, 100% { transform: scale(0.4) rotate(0); }
+  50% { transform: scale(1) rotate(90deg); }
+}
+@keyframes rematch-blink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
