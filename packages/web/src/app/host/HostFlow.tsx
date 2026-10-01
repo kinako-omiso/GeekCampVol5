@@ -1,23 +1,50 @@
 import { useEffect, useRef, useState } from 'react'
 import type {
   AssetManifest,
+  FighterStats,
   MotionMessage,
   PlayerSlot,
 } from '@gikcamp/protocol'
-import {
-  LobbyScreen,
-  type LobbyPlayerStatus,
-} from '../../features/lobby/LobbyScreen.tsx'
+import { HostStage } from '../../components/HostStage'
+import { ScanProgressScreen, type ScanStatus } from '../../features/analyze/ScanProgressScreen'
+import { BattleHud } from '../../features/battle/ui/BattleHud'
+import { LobbyScreen, type LobbyPlayerStatus } from '../../features/lobby/LobbyScreen'
+import { ResultScreen } from '../../features/result/ResultScreen'
 import { HostPeerSession } from '../../lib/peer/hostPeerSession.ts'
 import { buildControllerUrl } from '../../lib/peer/pairing.ts'
+import { MOCK_SCANNEES } from './mock/mockScannees'
+import type { PlayerId } from '../../../../../docs/design/tokens'
+import mugUrl from '../../../../../docs/design/assets/sample-scannee-mug.svg'
+import eraserUrl from '../../../../../docs/design/assets/sample-scannee-eraser.svg'
 import '../../../../../docs/design/tokens.css'
 import './host.css'
 
-type PlayerConnections = Record<
-  PlayerSlot,
-  string | null
->
+type Step = 'lobby' | 'scan' | 'battle' | 'result'
 
+// モック：スキャンの進み方。解析は1人ずつなので、2P は 1P の解析が終わるまで待つ
+const MOCK_SCAN_STEPS: Record<PlayerId, ScanStatus>[] = [
+  { p1: 'capturing', p2: 'capturing' },
+  { p1: 'sending', p2: 'capturing' },
+  { p1: 'analyzing', p2: 'sending' },
+  { p1: 'analyzing', p2: 'waiting' },
+  { p1: 'done', p2: 'analyzing' },
+  { p1: 'done', p2: 'done' },
+]
+
+// モック：能力値は docs/04-mvp.md の表示例に合わせたサンプル。HP は試合の途中くらいの値
+const MOCK_STATS: Record<PlayerId, FighterStats> = {
+  p1: { hp: 128, attack: 1.05, reach: 1.01, turnSpeed: 192, moveSpeed: 0.89 },
+  p2: { hp: 110, attack: 1.2, reach: 0.89, turnSpeed: 228, moveSpeed: 1.02 },
+}
+const MOCK_HP: Record<PlayerId, number> = { p1: 72, p2: 38 }
+const MOCK_REMAINING_SECONDS = 24
+
+// 送られてきた後（順番待ち・解析中・完成）だけコマの見た目がある
+function hasLook(status: ScanStatus) {
+  return status === 'waiting' || status === 'analyzing' || status === 'done'
+}
+
+type PlayerConnections = Record<PlayerSlot, string | null>
 type ControllerUrls = Record<PlayerSlot, string>
 type PlayerValue<T> = Record<PlayerSlot, T>
 
@@ -38,6 +65,9 @@ const createPlayerStatus = (
 })
 
 export function HostFlow() {
+  const [step, setStep] = useState<Step>('lobby')
+  const [scanStep, setScanStep] = useState(0)
+  const [winner, setWinner] = useState<PlayerId>('p1')
   const [controllerUrls, setControllerUrls] =
     useState<ControllerUrls | null>(null)
 
@@ -198,26 +228,94 @@ export function HostFlow() {
     )
   }
 
+  const scanStatuses = MOCK_SCAN_STEPS[scanStep]
+  const scanIsLast = scanStep === MOCK_SCAN_STEPS.length - 1
+
+  const finish = (player: PlayerId) => {
+    setWinner(player)
+    setStep('result')
+  }
+
+  const restart = () => {
+    setScanStep(0)
+    setStep('lobby')
+  }
+
   return (
     <>
-      <LobbyScreen
-        joinUrls={{
-          p1: controllerUrls[1],
-          p2: controllerUrls[2],
-        }}
-        statuses={{
-          p1: {
-            ...createPlayerStatus(players[1] !== null),
-            sensorReady: motions[1] !== null,
-            ready: motions[1] !== null,
-          },
-          p2: {
-            ...createPlayerStatus(players[2] !== null),
-            sensorReady: motions[2] !== null,
-            ready: motions[2] !== null,
-          },
-        }}
-      />
+      {step === 'lobby' && (
+        <LobbyScreen
+          joinUrls={{
+            p1: controllerUrls[1],
+            p2: controllerUrls[2],
+          }}
+          statuses={{
+            p1: {
+              ...createPlayerStatus(players[1] !== null),
+              sensorReady: motions[1] !== null,
+              ready: motions[1] !== null,
+            },
+            p2: {
+              ...createPlayerStatus(players[2] !== null),
+              sensorReady: motions[2] !== null,
+              ready: motions[2] !== null,
+            },
+          }}
+        />
+      )}
+      {step === 'scan' && (
+        <ScanProgressScreen
+          players={{
+            p1: { status: scanStatuses.p1, look: hasLook(scanStatuses.p1) ? MOCK_SCANNEES.p1 : undefined },
+            p2: { status: scanStatuses.p2, look: hasLook(scanStatuses.p2) ? MOCK_SCANNEES.p2 : undefined },
+          }}
+        />
+      )}
+      {step === 'battle' && (
+        <HostStage>
+          <BattleHud
+            fighters={{
+              p1: { hp: MOCK_HP.p1, stats: MOCK_STATS.p1, portraitUrl: mugUrl },
+              p2: { hp: MOCK_HP.p2, stats: MOCK_STATS.p2, portraitUrl: eraserUrl },
+            }}
+            remainingSeconds={MOCK_REMAINING_SECONDS}
+          />
+        </HostStage>
+      )}
+      {step === 'result' && <ResultScreen winner={winner} looks={MOCK_SCANNEES} />}
+
+      <div className="host-mock">
+        {step === 'lobby' && (
+          <>
+            <button type="button" onClick={() => setStep('scan')}>
+              モック：スキャンへ ▶
+            </button>
+          </>
+        )}
+        {step === 'scan' && (
+          <button
+            type="button"
+            onClick={() => (scanIsLast ? setStep('battle') : setScanStep((current) => current + 1))}
+          >
+            {scanIsLast ? 'モック：たいせんへ ▶' : 'モック：すすめる ▶'}
+          </button>
+        )}
+        {step === 'battle' && (
+          <>
+            <button type="button" onClick={() => finish('p1')}>
+              モック：1Pのかち ▶
+            </button>
+            <button type="button" onClick={() => finish('p2')}>
+              モック：2Pのかち ▶
+            </button>
+          </>
+        )}
+        {step === 'result' && (
+          <button type="button" onClick={restart}>
+            モック：ロビーへ ▶
+          </button>
+        )}
+      </div>
 
       {SHOW_HOST_DIAGNOSTICS && (
         <aside

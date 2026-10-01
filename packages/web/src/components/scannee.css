@@ -1,0 +1,5 @@
+/* 目のついたコマ。体と目を重ねる */
+.scannee { position: absolute; }
+.scannee__layer { position: absolute; inset: 0; }
+.scannee__body { display: block; width: 100%; height: 100%; }
+.scannee__eyes { position: absolute; display: block; }
