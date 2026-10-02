@@ -197,3 +197,25 @@
   100% { transform: translateY(calc(var(--u) * -12)); opacity: 0.3; }
 }
 @keyframes capture-progress { from { width: 0; } to { width: 100%; } }
+
+/* 本番の4枚撮影・対象指定・Mask確認。 */
+.capture-live { padding: calc(var(--u) * 10) calc(var(--u) * 18); box-sizing: border-box; color: white; display: flex; flex-direction: column; gap: calc(var(--u) * 6); }
+.capture-live__header { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: calc(var(--u) * 18); }
+.capture-live__header span { font-size: calc(var(--u) * 14); }
+.capture-live__error { margin: 0; padding: 4px 10px; background: var(--ss-danger); color: white; border-radius: 8px; font-size: calc(var(--u) * 14); }
+.capture-live button { border: 3px solid var(--ss-ink); border-radius: 12px; padding: calc(var(--u) * 8) calc(var(--u) * 14); background: var(--ss-cream); color: var(--ss-ink); font-weight: bold; font-size: calc(var(--u) * 16); }
+.capture-live button[aria-pressed="true"] { background: var(--ss-sun); }
+.capture-live button:disabled { opacity: 0.45; }
+.capture-live__camera { flex: 1; min-height: 0; display: flex; gap: 18px; }
+.capture-live__camera video { width: 70%; min-height: 0; object-fit: contain; }
+.capture-live__camera > div { align-self: center; display: flex; flex-direction: column; gap: 18px; }
+.capture-live__photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; min-height: 0; flex: 1; }
+.capture-live__photos button { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.capture-live__photos img { width: 100%; height: 80%; object-fit: contain; min-height: 0; }
+.capture-live__footer { display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 8); }
+.capture-live__footer span { flex: 1; font-size: calc(var(--u) * 13); }
+.capture-editor { flex: 1; min-height: 0; display: flex; gap: calc(var(--u) * 10); justify-content: center; }
+.capture-editor__tools { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+.capture-editor__image { min-height: 0; min-width: 0; flex: 1; display: flex; align-items: center; justify-content: center; }
+.capture-editor canvas { max-height: 100%; max-width: 100%; object-fit: contain; touch-action: none; }
+.capture-review__tabs { display: flex; gap: 8px; justify-content: center; }

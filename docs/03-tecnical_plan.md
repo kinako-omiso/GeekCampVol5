@@ -136,17 +136,20 @@ type FighterStats = {
  
 ### アセット転送
  
-運ぶのは写真1枚とマスクのみ。長辺2048px、JPEGで 0.5〜1.5MB。
+Issue #35ではスマホからPCへ写真4枚、PCからスマホへ方向別Maskを送る。同じasset接続を双方向に使う。写真は長辺2048px以下のJPEG、Maskは二値PNG。manifestへスキャンID・写真ID・方向・Mask版を追加して識別する。
  
 ```ts
 type AssetManifest = {
   transferId: string
-  mode: "photo"
+  kind: "photo" | "mask"
   fileName: string
   mimeType: string
   byteLength: number
   sha256: string
   chunkCount: number
+  width: number
+  height: number
+  scan?: { scanId: string; photoId: string; direction: "front" | "right" | "back" | "left"; revision: number }
 }
 ```
  
@@ -154,6 +157,8 @@ type AssetManifest = {
 - `asset` 接続のバッファー量を監視し、詰まったら待つ
 - PC側で進捗を表示、再結合後に SHA-256 を検証
 - 中断時は全体を再開。部分再送は初期版に含めない
+- 写真は4枚を保持して再送し、MaskはPCに保持して送り直す。チャンクごとの受信確認で送信バッファの増加を抑える。
+- 本番の画面進行とMaskの版管理はPCが管理する。controlでセンサー準備、正面・ストローク指定、方向別修正、Mask確定、画面状態、振動指示を送る。
 ## 6. 留意点
  
 ### 6.1 P2P通信
@@ -228,4 +233,3 @@ if (p === 'granted') window.addEventListener('deviceorientation', handler)
 **同一LAN・複数PC** — `screen` 役割の接続を追加し、最初のPCを権威ホストにして20Hzで状態をミラーする。スマホはホストPCへ直接接続のまま。
  
 **別LAN・複数PC** — 認証付きTURNを追加。観戦者が増えたら PeerServer を自前運用し、必要なら LiveKit へ。通信層を `RealtimeTransport` で分離しておけば、ゲームロジックを変えずに移行できる
-

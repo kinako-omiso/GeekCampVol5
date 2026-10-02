@@ -1,3 +1,5 @@
+import type { FighterStats } from '@gikcamp/protocol'
+import { ATTACKS, BattleRules, type BattleHit, type BattleSnapshot } from './battleRules'
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera'
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
@@ -26,6 +28,7 @@ import { createFighterMesh } from './fighterMesh'
 
 export type PhysicsBattleOptions = {
   fighters?: Partial<Record<PlayerId, BattleFighterModel>>
+  production?: { stats: Record<PlayerId, FighterStats>; onSnapshot: (snapshot: BattleSnapshot) => void }
 }
 
 const FIGHTER = 1
@@ -41,6 +44,7 @@ const ATTACKER_DRIVE_LOCK_MS = 180
 const DEFENDER_DRIVE_LOCK_MS = 250
 
 type TestAttack = {
+  button?: 'a' | 'b'
   expiresAt: number
   consumed: boolean
   origin: Vector3
@@ -52,24 +56,30 @@ type Fighter = {
   aggregate: PhysicsAggregate
   movement: MovementState
   input: MotionInput
+  inputAt: number
   out: boolean
   attack: TestAttack | null
   nextAttackAt: number
   driveLockUntil: number
   attackMultiplier: number
+  stats?: FighterStats
+  windup: { endsAt: number; direction: Vector3 } | null
+  flashUntil: number
 }
 
 export type PhysicsBattleEvent =
   | { type: 'contact' }
-  | { type: 'hit'; attacker: PlayerId; target: PlayerId; impulse: number }
+  | { type: 'hit'; attacker: PlayerId; target: PlayerId; impulse: number; button?: 'a' | 'b' }
   | { type: 'out'; player: PlayerId }
 export type PhysicsBattle = {
   setInput: (player: PlayerId, input: MotionInput) => void
   triggerTestAttack: (player: PlayerId) => boolean
+  triggerAttack: (player: PlayerId, button: 'a' | 'b') => boolean
+  setPaused: (paused: boolean) => void
   dispose: () => void
 }
 
-function createFighter(scene: Scene, player: PlayerId, sample: ReturnType<typeof reconstructQuickScan>, model?: BattleFighterModel): Fighter {
+function createFighter(scene: Scene, player: PlayerId, sample: ReturnType<typeof reconstructQuickScan>, model?: BattleFighterModel, stats?: FighterStats): Fighter {
   const prepared = model ? prepareFighterModel(model) : undefined
   const reconstruction = prepared?.reconstruction ?? sample
   const center = prepared ? { x: prepared.centerOfMass[0], y: prepared.centerOfMass[1], z: prepared.centerOfMass[2] } : getVolumeCentroid(reconstruction)
@@ -147,16 +157,19 @@ function createFighter(scene: Scene, player: PlayerId, sample: ReturnType<typeof
     aggregate,
     movement: { x: mesh.position.x, z: mesh.position.z, yaw, smoothedX: 0, smoothedY: 0 },
     input: { x: 0, y: 0 },
+    inputAt: 0,
     out: false,
     attack: null,
     nextAttackAt: 0,
     driveLockUntil: 0,
-    attackMultiplier: TEST_ATTACK_MULTIPLIERS[player],
+    attackMultiplier: stats?.attack ?? TEST_ATTACK_MULTIPLIERS[player],
+    stats, windup: null, flashUntil: 0,
   }
 }
 
 function drive(fighter: Fighter, seconds: number, now: number) {
-  if (fighter.out || fighter.attack?.retreat || now < fighter.driveLockUntil) return
+  if (fighter.stats && performance.now() - fighter.inputAt > 250) fighter.input = { x: 0, y: 0 }
+  if (fighter.out || fighter.windup || (fighter.stats && fighter.attack) || fighter.attack?.retreat || now < fighter.driveLockUntil) return
   const body = fighter.aggregate.body
   const position = fighter.mesh.position
   const previousYaw = fighter.movement.yaw
@@ -164,8 +177,9 @@ function drive(fighter: Fighter, seconds: number, now: number) {
     { ...fighter.movement, x: position.x, z: position.z },
     fighter.input,
     seconds,
-    { x: 1, z: 0 },
-    { x: 0, z: 1 },
+    fighter.stats ? { x: Math.SQRT1_2, z: Math.SQRT1_2 } : { x: 1, z: 0 },
+    fighter.stats ? { x: -Math.SQRT1_2, z: Math.SQRT1_2 } : { x: 0, z: 1 },
+    fighter.stats,
   )
   const velocity = body.getLinearVelocity()
   const desiredX = (next.x - position.x) / seconds
@@ -233,6 +247,34 @@ export async function mountPhysicsBattle(
   let floorRegion: PhysicsShapeCylinder | undefined
   let fighters: Record<PlayerId, Fighter> | undefined
   let disposed = false
+  let paused = !!options.production
+  let simulationMs = 0
+  let hitStopUntil = 0
+  const rules = options.production ? new BattleRules(options.production.stats) : null
+  const pendingHits: BattleHit[] = []
+  let lastSnapshotAt = -Infinity
+  const launch = (fighter: Fighter, button: 'a' | 'b', now: number) => {
+    fighter.windup = null
+    fighter.attack = { button, expiresAt: now + 150, consumed: false, origin: fighter.mesh.position.clone(), retreat: null }
+    const direction = new Vector3(Math.sin(fighter.movement.yaw), 0, Math.cos(fighter.movement.yaw))
+    const velocity = fighter.aggregate.body.getLinearVelocity()
+    const speed = ATTACKS[button].reach * (fighter.stats?.reach ?? 1) / 0.15
+    fighter.aggregate.body.setLinearVelocity(new Vector3(direction.x * speed, velocity.y, direction.z * speed))
+  }
+  const updateProductionAttack = (fighter: Fighter, now: number) => {
+    if (fighter.windup && now >= fighter.windup.endsAt) launch(fighter, 'b', now)
+    if (fighter.attack && (fighter.attack.consumed || now >= fighter.attack.expiresAt)) {
+      const direction = new Vector3(Math.sin(fighter.movement.yaw), 0, Math.cos(fighter.movement.yaw))
+      const velocity = fighter.aggregate.body.getLinearVelocity()
+      const forwardSpeed = Math.max(0, Vector3.Dot(velocity, direction))
+      fighter.aggregate.body.setLinearVelocity(velocity.subtract(direction.scale(forwardSpeed)))
+      fighter.attack = null
+    }
+    const material = fighter.mesh.material as StandardMaterial
+    material.emissiveColor = now < fighter.flashUntil ? Color3.White() : Color3.Black()
+    const ring = fighter.mesh.getChildMeshes()[0]
+    if (ring) (ring.material as StandardMaterial).emissiveColor = fighter.windup ? Color3.White() : Color3.Black()
+  }
 
   const dispose = () => {
     if (disposed) return
@@ -249,7 +291,7 @@ export async function mountPhysicsBattle(
   }
 
   try {
-    await enableHavok(scene)
+    await enableHavok(scene, !!options.production)
     if (signal?.aborted) throw new DOMException('中断しました。', 'AbortError')
 
     const sky = Color3.FromHexString(colors.sky)
@@ -284,8 +326,8 @@ export async function mountPhysicsBattle(
 
     const reconstruction = reconstructQuickScan(createSampleMask())
     fighters = {
-      p1: createFighter(scene, 'p1', reconstruction, options.fighters?.p1),
-      p2: createFighter(scene, 'p2', reconstruction, options.fighters?.p2),
+      p1: createFighter(scene, 'p1', reconstruction, options.fighters?.p1, options.production?.stats.p1),
+      p2: createFighter(scene, 'p2', reconstruction, options.fighters?.p2, options.production?.stats.p2),
     }
     const activeFighters = fighters
     const firstBody = activeFighters.p1.aggregate.body
@@ -303,7 +345,7 @@ export async function mountPhysicsBattle(
         direction.set(Math.sin(activeFighters.p1.movement.yaw), 0, Math.cos(activeFighters.p1.movement.yaw))
       }
       direction.normalize()
-      const now = performance.now()
+      const now = rules ? simulationMs : performance.now()
       const hits = (['p1', 'p2'] as const).filter((player) => {
         const fighter = activeFighters[player]
         const attack = fighter.attack
@@ -337,13 +379,19 @@ export async function mountPhysicsBattle(
         const targetBody = defender.aggregate.body
         const targetCenter = targetBody.getObjectCenterWorld()
         const outward = player === 'p1' ? direction : direction.scale(-1)
-        const impulse = calculateKnockbackImpulse({ attackValue: TEST_ATTACK_VALUE, attackMultiplier: attacker.attackMultiplier })
+        const impulse = calculateKnockbackImpulse({ attackValue: fighterAttackValue(attacker.attack?.button), attackMultiplier: attacker.attackMultiplier })
         targetBody.applyImpulse(outward.scale(impulse), targetCenter)
         attacker.driveLockUntil = Math.max(attacker.driveLockUntil, now + ATTACKER_DRIVE_LOCK_MS)
         defender.driveLockUntil = Math.max(defender.driveLockUntil, now + DEFENDER_DRIVE_LOCK_MS)
         attacker.movement.smoothedX = attacker.movement.smoothedY = 0
         defender.movement.smoothedX = defender.movement.smoothedY = 0
-        onEvent({ type: 'hit', attacker: player, target, impulse })
+        const button = attacker.attack?.button
+        if (rules && button) {
+          pendingHits.push({ attacker: player, target, button })
+          defender.flashUntil = now + 100
+          hitStopUntil = performance.now() + 50
+        }
+        onEvent({ type: 'hit', attacker: player, target, impulse, button })
       }
     })
 
@@ -363,9 +411,18 @@ export async function mountPhysicsBattle(
     engine.runRenderLoop(() => {
       if (disposed || signal?.aborted) return
       const seconds = Math.min(Math.max(engine.getDeltaTime() / 1000, 1 / 240), 0.05)
-      const now = performance.now()
-      updateAttackReturn(activeFighters.p1, now)
-      updateAttackReturn(activeFighters.p2, now)
+      const frozen = paused || !!rules?.snapshot().result || performance.now() < hitStopUntil
+      scene.physicsEnabled = !frozen
+      if (frozen) { scene.render(); return }
+      if (rules) simulationMs += seconds * 1000
+      const now = rules ? simulationMs : performance.now()
+      if (rules) {
+        updateProductionAttack(activeFighters.p1, now)
+        updateProductionAttack(activeFighters.p2, now)
+      } else {
+        updateAttackReturn(activeFighters.p1, now)
+        updateAttackReturn(activeFighters.p2, now)
+      }
       drive(activeFighters.p1, seconds, now)
       drive(activeFighters.p2, seconds, now)
       scene.render()
@@ -375,10 +432,15 @@ export async function mountPhysicsBattle(
       )
       if (separationAfterStep > 2) contactArmed = true
 
+      const snapshot = rules?.snapshot()
+      const radius = snapshot?.radius ?? RING_RADIUS
+      rim.scaling.set(radius / RING_RADIUS, 1, radius / RING_RADIUS)
+      rim.isVisible = !snapshot?.shrinkWarning || Math.floor(simulationMs / 200) % 2 === 0
+      const outs: PlayerId[] = []
       for (const player of ['p1', 'p2'] as const) {
         const fighter = activeFighters[player]
         const center = fighter.aggregate.body.getObjectCenterWorld()
-        if (!hasJustLeftRing(center.x, center.z, fighter.out)) continue
+        if (!hasJustLeftRing(center.x, center.z, fighter.out, radius)) continue
         fighter.out = true
         fighter.input = { x: 0, y: 0 }
         if (fighter.attack?.retreat) {
@@ -390,10 +452,19 @@ export async function mountPhysicsBattle(
         // 接地中の接触ペアは Havok に残るため、外向きの運動で床から確実に離す。
         const outward = new Vector3(center.x, 0, center.z).normalize().scale(EXIT_IMPULSE)
         fighter.aggregate.body.applyImpulse(outward, center)
+        outs.push(player)
         onEvent({ type: 'out', player })
       }
-      finishAttackReturn(activeFighters.p1)
-      finishAttackReturn(activeFighters.p2)
+      if (rules) {
+        const current = rules.step(seconds, pendingHits.splice(0), outs)
+        if (simulationMs - lastSnapshotAt >= 100 || current.result) {
+          lastSnapshotAt = simulationMs
+          options.production!.onSnapshot(current)
+        }
+      } else {
+        finishAttackReturn(activeFighters.p1)
+        finishAttackReturn(activeFighters.p2)
+      }
 
       const p1 = activeFighters.p1.mesh.position
       const p2 = activeFighters.p2.mesh.position
@@ -401,12 +472,13 @@ export async function mountPhysicsBattle(
       const blend = Math.min(1, seconds * 5)
       camera.setTarget(Vector3.Lerp(camera.target, target, blend), false, false, true)
       const separation = Math.hypot(p1.x - p2.x, p1.z - p2.z)
-      const radius = 13 * (1 + 0.3 * Math.min(1, separation / 12))
-      camera.radius += (radius - camera.radius) * blend
+      const cameraRadius = 13 * (1 + 0.3 * Math.min(1, separation / 12))
+      camera.radius += (cameraRadius - camera.radius) * blend
     })
 
     return {
       setInput: (player, input) => {
+        activeFighters[player].inputAt = performance.now()
         activeFighters[player].input = {
           x: Math.max(-1, Math.min(1, input.x)),
           y: Math.max(-1, Math.min(1, input.y)),
@@ -427,10 +499,34 @@ export async function mountPhysicsBattle(
         fighter.aggregate.body.applyImpulse(direction.scale(TEST_IMPULSE), fighter.aggregate.body.getObjectCenterWorld())
         return true
       },
+      triggerAttack: (player, button) => {
+        const fighter = activeFighters[player]
+        if (!rules || paused || fighter.out || fighter.attack || fighter.windup ||
+            !rules.acceptAttack(player, button, simulationMs)) return false
+        if (button === 'b') {
+          const direction = new Vector3(Math.sin(fighter.movement.yaw), 0, Math.cos(fighter.movement.yaw))
+          fighter.windup = { endsAt: simulationMs + ATTACKS.b.windupMs, direction }
+          const velocity = fighter.aggregate.body.getLinearVelocity()
+          fighter.aggregate.body.setLinearVelocity(new Vector3(-direction.x, velocity.y, -direction.z))
+          fighter.aggregate.body.setAngularVelocity(Vector3.Zero())
+        } else launch(fighter, button, simulationMs)
+        return true
+      },
+      setPaused: (value) => {
+        paused = value
+        if (value) for (const fighter of Object.values(activeFighters)) {
+          fighter.input = { x: 0, y: 0 }
+          fighter.movement.smoothedX = fighter.movement.smoothedY = 0
+        }
+      },
       dispose,
     }
   } catch (cause) {
     dispose()
     throw cause
   }
+}
+
+function fighterAttackValue(button?: 'a' | 'b') {
+  return button === 'b' ? 2 : TEST_ATTACK_VALUE
 }

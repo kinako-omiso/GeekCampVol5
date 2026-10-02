@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { scanDirectionSchema } from './scan.ts'
 
 // 一回で送るデータ量と最大のデータ量を定義
 export const ASSET_CHUNK_SIZE = 12 * 1024
@@ -18,8 +19,10 @@ export const assetManifestSchema = z.object({
     .max(MAX_ASSET_BYTES),
   sha256: z.string().regex(/^[0-9a-f]{64}$/i),
   chunkCount: z.number().int().positive(),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
+  width: z.number().int().positive().max(2048),
+  height: z.number().int().positive().max(2048),
+  scan: z.object({ scanId: z.string().uuid(), photoId: z.string().uuid(),
+    direction: scanDirectionSchema, revision: z.number().int().nonnegative() }).optional(),
 })
 
 export type AssetManifest = z.infer<

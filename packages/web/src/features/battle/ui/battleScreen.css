@@ -1,0 +1,4 @@
+.battle-screen__canvas { width: 100%; height: 100%; display: block; }
+.battle-screen__pause { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgb(0 0 0 / 45%); color: white; font-size: 52px; text-align: center; }
+.battle-screen__pause button { font-size: 24px; padding: 12px 24px; border-radius: 16px; }
+.battle-screen__warning { position: absolute; top: 170px; left: 50%; transform: translateX(-50%); padding: 10px 25px; background: var(--ss-sun); border: 4px solid var(--ss-ink); border-radius: 16px; font-size: 24px; }

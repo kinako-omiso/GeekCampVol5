@@ -1,244 +1,83 @@
 import { useEffect, useRef, useState } from 'react'
+import { assignScanDirections, SCAN_DIRECTIONS, type ScanDirection, type SelectionStroke } from '@gikcamp/protocol'
 import { PhoneStage } from '../../../components/PhoneStage'
-import { Svg } from '../../../components/Svg'
+import { StrokeEditor } from './StrokeEditor'
 import { players, type PlayerId } from '../../../../../../docs/design/tokens'
-import brightIcon from '../../../../../../docs/design/assets/icons/bright.svg?raw'
-import cameraIcon from '../../../../../../docs/design/assets/icons/camera.svg?raw'
-import checkIcon from '../../../../../../docs/design/assets/icons/check.svg?raw'
-import monitorIcon from '../../../../../../docs/design/assets/icons/monitor.svg?raw'
-import presetIcon from '../../../../../../docs/design/assets/icons/preset.svg?raw'
-import sendIcon from '../../../../../../docs/design/assets/icons/send.svg?raw'
-import wholeIcon from '../../../../../../docs/design/assets/icons/whole.svg?raw'
 import './capture.css'
 
-type Props = {
-  player: PlayerId
-  onSendPhoto?: (
-    photo: Blob,
-    dimensions: { width: number; height: number },
-    onProgress: (ratio: number) => void,
-  ) => Promise<void>
-}
+export type CapturedPhoto = { id: string; blob: Blob; width: number; height: number; url: string }
+export type CapturedScan = { scanId: string; photos: CapturedPhoto[]; frontPhotoId: string; strokes: SelectionStroke[] }
+type Props = { player: PlayerId; onSendScan: (scan: CapturedScan, onProgress: (ratio: number) => void) => Promise<void>;
+  onSubmitted: (scan: CapturedScan) => void; initialScan?: CapturedScan; message?: string }
 
-type Phase = 'shoot' | 'sending' | 'sent'
-
-// モック：送信にかかったことにする時間（本番は PeerJS の送信完了で進める）
-const MOCK_SEND_MS = 1600
-const MAX_PHOTO_SIDE = 2048
-
-const TIPS = [
-  { icon: presetIcon, label: '1こだけ' },
-  { icon: brightIcon, label: 'あかるく' },
-  { icon: wholeIcon, label: 'まるごと' },
-]
-
-/**
- * スマホ：撮影画面（モック）。
- * カメラのプレビューとシャッター → 送信中 → 送信完了。範囲指定（ぬりぬり）と送信は後続の issue で作る。
- */
-export function CaptureScreen({ player, onSendPhoto }: Props) {
+/** 4枚を撮影し、正面を選んで対象をストローク指定する本番スキャン画面。 */
+export function CaptureScreen({ player, onSendScan, onSubmitted, initialScan, message }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [phase, setPhase] = useState<Phase>('shoot')
-  const [photo, setPhoto] = useState<string | null>(null)
-  const [cameraFailed, setCameraFailed] = useState(false)
-  const [sendProgress, setSendProgress] = useState(0)
-  const [sendError, setSendError] = useState('')
-  // HTTPS でない・非対応ブラウザではカメラを使えない
-  const cameraSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
-  const cameraError = !cameraSupported || cameraFailed
-
-  // 撮影中だけカメラを動かす
+  const [photos, setPhotos] = useState<CapturedPhoto[]>(initialScan?.photos ?? [])
+  const [front, setFront] = useState(initialScan?.frontPhotoId ?? '')
+  const [strokes, setStrokes] = useState<SelectionStroke[]>(initialScan?.strokes ?? [])
+  const [phase, setPhase] = useState<'shoot' | 'choose' | 'select' | 'sending'>(initialScan ? 'select' : 'shoot')
+  const [error, setError] = useState('')
+  const [progress, setProgress] = useState(0)
+  const [shooting, setShooting] = useState(false)
+  const mounted = useRef(true)
+  const cameraSupported = !!navigator.mediaDevices?.getUserMedia
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
   useEffect(() => {
-    if (phase !== 'shoot' || !cameraSupported) return
-
-    let cancelled = false
-    let stream: MediaStream | null = null
-    navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      .then((s) => {
-        if (cancelled) {
-          stopStream(s)
-          return
-        }
-        stream = s
-        if (videoRef.current) videoRef.current.srcObject = s
-      })
-      .catch(() => {
-        if (!cancelled) setCameraFailed(true)
-      })
-
-    return () => {
-      cancelled = true
-      if (stream) stopStream(stream)
-    }
+    if (phase !== 'shoot') return
+    let cancelled = false, stream: MediaStream | undefined
+    if (!cameraSupported) return
+    void navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then((value) => {
+      if (cancelled) { value.getTracks().forEach((track) => track.stop()); return }
+      stream = value; if (videoRef.current) videoRef.current.srcObject = value
+    }).catch(() => { if (!cancelled) setError('カメラの許可を確認してください。') })
+    return () => { cancelled = true; stream?.getTracks().forEach((track) => track.stop()) }
   }, [phase, cameraSupported])
-
-  // モック：一定時間たったら送信完了にする
-  useEffect(() => {
-    if (phase !== 'sending' || onSendPhoto !== undefined) return
-    const timer = window.setTimeout(() => setPhase('sent'), MOCK_SEND_MS)
-    return () => window.clearTimeout(timer)
-  }, [phase, onSendPhoto])
-
-  const handleShutter = async () => {
+  const shutter = async () => {
     const video = videoRef.current
-    if (!video || video.videoWidth <= 0) {
-      return
-    }
-
-    const canvas = document.createElement('canvas')
-    const scale = Math.min(
-      1,
-      MAX_PHOTO_SIDE /
-        Math.max(video.videoWidth, video.videoHeight),
-    )
-    canvas.width = Math.round(video.videoWidth * scale)
-    canvas.height = Math.round(video.videoHeight * scale)
-    canvas
-      .getContext('2d')
-      ?.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    const blob = await canvasToBlob(canvas)
-    setPhoto(canvas.toDataURL('image/jpeg', 0.85))
-    setSendProgress(0)
-    setSendError('')
-    setPhase('sending')
-
-    if (onSendPhoto === undefined) {
-      return
-    }
-
+    if (!video?.videoWidth || shooting) return
+    setShooting(true)
     try {
-      await onSendPhoto(
-        blob,
-        {
-          width: canvas.width,
-          height: canvas.height,
-        },
-        setSendProgress,
-      )
-      setPhase('sent')
-    } catch (error) {
-      setPhoto(null)
-      setPhase('shoot')
-      setSendError(
-        error instanceof Error
-          ? error.message
-          : '写真を送信できませんでした',
-      )
-    }
+      const scale = Math.min(1, 2048 / Math.max(video.videoWidth, video.videoHeight))
+      const canvas = document.createElement('canvas'); canvas.width = Math.round(video.videoWidth * scale); canvas.height = Math.round(video.videoHeight * scale)
+      canvas.getContext('2d')!.drawImage(video, 0, 0, canvas.width, canvas.height)
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('写真を作れませんでした。')), 'image/jpeg', 0.85))
+      if (!mounted.current) return
+      const next = [...photos, { id: crypto.randomUUID(), blob, width: canvas.width, height: canvas.height, url: canvas.toDataURL('image/jpeg', 0.85) }]
+      setPhotos(next); setError('')
+      if (next.length === 4) setPhase('choose')
+    } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : '撮影できませんでした。') }
+    finally { if (mounted.current) setShooting(false) }
   }
-
-  if (phase === 'sent') {
-    return (
-      <PhoneStage player={player} className="capture">
-        <div className="capture__sent">
-          <div className="capture__sent-badge">
-            <Svg markup={checkIcon} className="capture__sent-check" />
-          </div>
-          <div className="capture__sent-text">
-            <div className="ss-display phone-ol capture__sent-title">おくったよ!</div>
-            <div className="capture__sent-sub">
-              <Svg markup={monitorIcon} className="capture__sent-monitor" />
-              <span>PCを みてね!</span>
-            </div>
-          </div>
-        </div>
-      </PhoneStage>
-    )
+  const send = async () => {
+    if (photos.length !== 4 || !front || !strokes.some((stroke) => stroke.mode === 'add')) return
+    const scan = { scanId: crypto.randomUUID(), photos, frontPhotoId: front, strokes }
+    setPhase('sending'); setError(''); setProgress(0)
+    try { await onSendScan(scan, setProgress); if (mounted.current) onSubmitted(scan) }
+    catch (cause) { if (mounted.current) { setError(cause instanceof Error ? cause.message : '送信できませんでした。'); setPhase('select') } }
   }
-
-  return (
-    <PhoneStage player={player} className="capture">
-      <div className="capture__layout">
-        <div className="capture__preview">
-          {photo ? (
-            <img className="capture__media" src={photo} alt="とった しゃしん" />
-          ) : (
-            <video ref={videoRef} className="capture__media" autoPlay playsInline muted />
-          )}
-          {cameraError && !photo && <div className="capture__camera-error">カメラが つかえないよ</div>}
-          {sendError !== '' && (
-            <div className="capture__send-error" role="alert">
-              {sendError}
-            </div>
-          )}
-
-          {phase === 'shoot' && (
-            <>
-              <div className="capture__guide" aria-hidden="true" />
-              <ul className="capture__tips">
-                {TIPS.map((tip) => (
-                  <li key={tip.label} className="capture__tip">
-                    <Svg markup={tip.icon} className="capture__tip-icon" />
-                    <span>{tip.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-
-        <div className="capture__side">
-          <div className="ss-display phone-ol-s capture__player">{players[player].label}</div>
-          {phase === 'shoot' && (
-            <>
-              <button
-                type="button"
-                className="capture__shutter"
-                aria-label="しゃしんを とる"
-                disabled={cameraError}
-                onClick={handleShutter}
-              >
-                <span className="capture__shutter-ring" />
-                <Svg markup={cameraIcon} className="capture__shutter-icon" />
-              </button>
-              <div className="ss-display phone-ol-s capture__shutter-label">パシャ!</div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {phase === 'sending' && (
-        <div className="capture__sending" role="status">
-          <Svg markup={sendIcon} className="capture__sending-icon" />
-          <div className="ss-display capture__sending-title">おくってるよ…</div>
-          <div className="capture__sending-bar">
-            <div
-              className={
-                onSendPhoto === undefined
-                  ? 'capture__sending-fill'
-                  : 'capture__sending-fill is-live'
-              }
-              style={
-                onSendPhoto === undefined
-                  ? { animationDuration: `${MOCK_SEND_MS}ms` }
-                  : { width: `${sendProgress * 100}%` }
-              }
-            />
-          </div>
-        </div>
-      )}
-    </PhoneStage>
-  )
-}
-
-function stopStream(stream: MediaStream) {
-  stream.getTracks().forEach((track) => track.stop())
-}
-
-function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob === null) {
-          reject(new Error('写真の変換に失敗しました'))
-        } else {
-          resolve(blob)
-        }
-      },
-      'image/jpeg',
-      0.85,
-    )
-  })
+  const selected = photos.find((photo) => photo.id === front)
+  const assignments = front && photos.length === 4 ? assignScanDirections(photos.map((photo) => photo.id), front) : null
+  const labels: Record<ScanDirection, string> = { front: '正面', right: '右', back: '背面', left: '左' }
+  return <PhoneStage player={player} className="capture capture-live">
+    <header className="capture-live__header"><strong>{players[player].label} · {phase === 'shoot' ? `写真 ${photos.length + 1} / 4` : phase === 'choose' ? '正面を えらんでね' : '対象を ぬってね'}</strong>
+      <span>高さと距離をそろえ、対象を右・背面・左へ回してね</span></header>
+    {(error || message || !cameraSupported) && <p className="capture-live__error" role="alert">{error || message || 'カメラを使えません。HTTPSで開いてください。'}</p>}
+    {phase === 'shoot' && <div className="capture-live__camera"><video ref={videoRef} autoPlay playsInline muted /><div>
+      <button type="button" onClick={() => void shutter()} disabled={shooting}>パシャ!</button>
+      {photos.length > 0 && <button type="button" onClick={() => setPhotos(photos.slice(0, -1))}>前の写真を とりなおす</button>}
+      <p>あかるく · 1こだけ · まるごと</p></div></div>}
+    {phase === 'choose' && <div className="capture-live__photos">{photos.map((photo, index) => <button type="button" key={photo.id} onClick={() => {
+      setFront(photo.id); setStrokes([]); setPhase('select')
+    }}><img src={photo.url} alt={`写真 ${index + 1}`} /><span>これを正面にする</span></button>)}</div>}
+    {(phase === 'select' || phase === 'sending') && selected && <>
+      <StrokeEditor photoUrl={selected.url} strokes={strokes} onChange={setStrokes} disabled={phase === 'sending'} />
+      <footer className="capture-live__footer"><span>{assignments && SCAN_DIRECTIONS.map((direction) => `${labels[direction]}: ${photos.findIndex((photo) => photo.id === assignments[direction]) + 1}`).join(' / ')}</span>
+        <button type="button" disabled={phase === 'sending'} onClick={() => setPhase('choose')}>正面を えらびなおす</button>
+        <button type="button" disabled={phase === 'sending'} onClick={() => { setPhotos([]); setStrokes([]); setFront(''); setPhase('shoot') }}>4枚 とりなおす</button>
+        <button type="button" disabled={phase === 'sending' || !strokes.some((stroke) => stroke.mode === 'add')} onClick={() => void send()}>{error ? '4枚を おくりなおす' : '4枚を おくる'}</button></footer>
+    </>}
+    {phase === 'sending' && <div className="capture__sending" role="status"><div className="ss-display capture__sending-title">おくってるよ… {Math.round(progress * 100)}%</div>
+      <progress value={progress} max={1} /></div>}
+  </PhoneStage>
 }

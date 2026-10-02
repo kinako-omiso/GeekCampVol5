@@ -1,15 +1,5 @@
-/* モック用の「つぎへ」ボタン。PC とつないで画面が進むようになったら消す */
-.controller-mock-next {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + 4px);
-  left: 50%;
-  z-index: 200;
-  transform: translateX(-50%);
-  padding: 4px 12px;
-  border: none;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 0.45);
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
-}
+/* 本番スマホ画面の待機・状態表示・被弾フラッシュ。 */
+.controller-waiting { display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
+.controller-status { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 20; background: var(--ss-cream); color: var(--ss-ink); padding: 8px 16px; border: 3px solid var(--ss-ink); border-radius: 14px; }
+.controller-feedback { position: fixed; inset: 0; background: white; z-index: 30; pointer-events: none; animation: controller-hit 180ms ease-out forwards; }
+@keyframes controller-hit { from { opacity: 0.75; } to { opacity: 0; } }

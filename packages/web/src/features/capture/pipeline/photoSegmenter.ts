@@ -2,10 +2,8 @@ import { FilesetResolver, InteractiveSegmenter } from '@mediapipe/tasks-vision'
 import type { BrushMode } from '@mediapipe/tasks-vision'
 import type { SilhouetteMask } from '../../analyze/reconstruction/types'
 
-export type SelectionStroke = {
-  mode: 'add' | 'remove'
-  points: ReadonlyArray<{ x: number; y: number }>
-}
+import type { SelectionStroke } from '@gikcamp/protocol'
+export type { SelectionStroke } from '@gikcamp/protocol'
 
 export type PhotoPreparationTimings = {
   modelLoadMs: number

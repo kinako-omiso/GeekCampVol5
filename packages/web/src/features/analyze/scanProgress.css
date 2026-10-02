@@ -298,3 +298,7 @@
   0%, 100% { transform: scale(0) rotate(0); }
   50% { transform: scale(1) rotate(90deg); }
 }
+/* 本番の処理状況と撮り直し理由。 */
+.scan__panel { height: 550px; }
+.scan__status { position: absolute; top: 435px; left: 25px; right: 25px; margin: 0; text-align: center; font-size: 20px; }
+.scan__error { position: absolute; top: 470px; left: 25px; right: 25px; margin: 0; padding: 8px; background: var(--ss-cream); color: var(--ss-danger); border-radius: 12px; font-size: 16px; }

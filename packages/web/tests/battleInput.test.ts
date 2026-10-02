@@ -5,9 +5,10 @@ import { isMotionMessage } from '../../protocol/src/motion.ts'
 import { stepMovement, type MovementState } from '../src/features/battle/game/movement.ts'
 
 test('傾きとボタンの検証では無効な値を受け付けない', () => {
-  assert.equal(isMotionMessage({ type: 'motion', x: 0.5, y: -1 }), true)
-  assert.equal(isMotionMessage({ type: 'motion', x: Number.NaN, y: 0 }), false)
-  assert.equal(isMotionMessage({ type: 'motion', x: 1.1, y: 0 }), false)
+  assert.equal(isMotionMessage({ type: 'motion', sequence: 0, x: 0.5, y: -1 }), true)
+  assert.equal(isMotionMessage({ type: 'motion', sequence: 1, x: Number.NaN, y: 0 }), false)
+  assert.equal(isMotionMessage({ type: 'motion', sequence: 2, x: 1.1, y: 0 }), false)
+  assert.equal(isMotionMessage({ type: 'motion', x: 0.5, y: -1 }), false)
   assert.equal(isControlMessage({ type: 'attack', button: 'a' }), true)
   assert.equal(isControlMessage({ type: 'attack', button: 'c' }), false)
 })
