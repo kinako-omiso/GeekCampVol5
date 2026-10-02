@@ -1,7 +1,8 @@
 // PCとスマホが共有する接続制御メッセージとZodスキーマを定義
 import { z } from 'zod'
+import { scanControlSchemas } from './scan.ts'
 
-export const PROTOCOL_VERSION = '0.1.0' as const
+export const PROTOCOL_VERSION = '0.2.0' as const
 
 // プレイヤー番号のスキーマ
 export const playerSlotSchema = z.union([
@@ -24,6 +25,7 @@ export type PairingMetadata = z.infer<
 
 // 接続管理と検証画面の操作に使うメッセージ
 export const controlMessageSchema = z.discriminatedUnion('type', [
+  ...scanControlSchemas,
   z.object({
     type: z.literal('connection-accepted'),
     slot: playerSlotSchema,

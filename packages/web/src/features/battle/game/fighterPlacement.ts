@@ -1,5 +1,7 @@
 import type { GeometryResult } from '@gikcamp/geometry-wasm'
 import type { ReconstructionResult } from '../../analyze/reconstruction/types.ts'
+import { reconstructQuickScan } from '../../analyze/reconstruction/quickScan.ts'
+import { createSampleMask } from './sampleMask.ts'
 
 /** 生成座標系の接地面と、足元基準に対する補正。角度の単位はラジアン。 */
 export type FighterPlacement = {
@@ -7,6 +9,7 @@ export type FighterPlacement = {
   offsetX: number
   offsetZ: number
   bottomY: number
+  scale: number
 }
 
 export type BattleFighterModel = {
@@ -22,6 +25,8 @@ export type PreparedFighter = {
 }
 
 const EPSILON = 1e-7
+const MIN_MODEL_HEIGHT = 1e-4
+let sampleHeight: number | null = null
 
 export function getModelBounds(positions: Float32Array) {
   if (positions.length < 12 || positions.length % 3 !== 0) throw new Error('モデルの頂点が不正です。')
@@ -37,12 +42,15 @@ export function getModelBounds(positions: Float32Array) {
   }
   const span = Math.max(...max.map((value, axis) => value - min[axis]))
   if (span <= EPSILON) throw new Error('モデルに大きさがありません。')
-  return { minY: min[1], maxY: max[1], span }
+  return { minY: min[1], maxY: max[1], height: max[1] - min[1], span }
 }
 
 export function createDefaultPlacement(reconstruction: ReconstructionResult, frontYawDegrees = 0): FighterPlacement {
+  const bounds = getModelBounds(reconstruction.positions)
+  if (bounds.height <= MIN_MODEL_HEIGHT) throw new Error('モデルの高さが足りないため、対戦用の大きさを決められません。')
+  sampleHeight ??= getModelBounds(reconstructQuickScan(createSampleMask()).positions).height
   return { yaw: -frontYawDegrees * Math.PI / 180, offsetX: 0, offsetZ: 0,
-    bottomY: getModelBounds(reconstruction.positions).minY }
+    bottomY: bounds.minY, scale: sampleHeight / bounds.height }
 }
 
 function hasVolume(points: Float32Array): boolean {
@@ -94,9 +102,11 @@ export function clipCollisionHull(positions: Float32Array, indices: Uint32Array,
 
 /** 表示・衝突・重心を同じ足元座標へ変換し、生成データを変更しない。 */
 export function prepareFighterModel({ reconstruction, geometry, placement }: BattleFighterModel): PreparedFighter {
-  const { minY, maxY, span } = getModelBounds(reconstruction.positions)
-  if (!Object.values(placement).every(Number.isFinite) || placement.bottomY < minY || placement.bottomY > maxY) {
-    throw new Error('補正値は有限数、下端はモデルの高さの範囲内にしてください。')
+  const { minY, maxY, height, span } = getModelBounds(reconstruction.positions)
+  if (height <= MIN_MODEL_HEIGHT) throw new Error('モデルの高さが足りないため、対戦用の大きさを決められません。')
+  if (!Object.values(placement).every(Number.isFinite) || placement.scale <= 0 ||
+      placement.bottomY < minY || placement.bottomY > maxY) {
+    throw new Error('補正値と倍率は正の有限数、下端はモデルの高さの範囲内にしてください。')
   }
   if (geometry.centerOfMass.length !== 3 || !geometry.centerOfMass.every(Number.isFinite) ||
       reconstruction.indices.length < 12 || reconstruction.indices.length % 3 !== 0 ||
@@ -106,8 +116,9 @@ export function prepareFighterModel({ reconstruction, geometry, placement }: Bat
 
   const cosine = Math.cos(placement.yaw), sine = Math.sin(placement.yaw)
   const transform = (x: number, y: number, z: number): [number, number, number] => [
-    cosine * x + sine * z + placement.offsetX, y - placement.bottomY,
-    -sine * x + cosine * z + placement.offsetZ,
+    (cosine * x + sine * z) * placement.scale + placement.offsetX,
+    (y - placement.bottomY) * placement.scale,
+    (-sine * x + cosine * z) * placement.scale + placement.offsetZ,
   ]
   const transformPositions = (input: Float32Array) => {
     const output = new Float32Array(input.length)

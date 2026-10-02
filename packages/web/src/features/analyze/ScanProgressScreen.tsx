@@ -12,12 +12,14 @@ import './scanProgress.css'
  * 1人ぶんの進み具合。山道の 撮る → 送る → 解析 → 完成 に対応する。
  * waiting は送り終わって、相手の解析が終わるのを待っている（解析は1人ずつ）。
  */
-export type ScanStatus = 'capturing' | 'sending' | 'waiting' | 'analyzing' | 'done'
+export type ScanStatus = 'capturing' | 'sending' | 'waiting' | 'analyzing' | 'review' | 'done'
 
 export type ScanPlayer = {
   status: ScanStatus
   // 送られてきたコマの見た目。届く前（撮影中・送信中）は無い
   look?: ScanneeLook
+  message?: string
+  progress?: number
 }
 
 type Props = {
@@ -92,6 +94,7 @@ const STEP_STATES: Record<ScanStatus, StepState[]> = {
   sending: ['done', 'current', 'todo', 'todo'],
   waiting: ['done', 'done', 'todo', 'todo'],
   analyzing: ['done', 'done', 'current', 'todo'],
+  review: ['done', 'done', 'current', 'todo'],
   done: ['done', 'done', 'done', 'done'],
 }
 
@@ -100,6 +103,7 @@ const STATUS_LABELS: Record<ScanStatus, string> = {
   sending: 'いま おくってる',
   waiting: 'じゅんばんまち',
   analyzing: 'いま かいせきちゅう',
+  review: 'スマホで たしかめてね',
   done: 'できあがり',
 }
 
@@ -169,6 +173,8 @@ function PlayerPanel({ player, scan }: PanelProps) {
         </div>
       )}
       <ProgressTrail status={status} />
+      <p className="scan__status" role="status">{STATUS_LABELS[status]}{status === 'sending' && scan.progress !== undefined ? ` ${Math.round(scan.progress * 100)}%` : ''}</p>
+      {scan.message && <p className="scan__error" role="alert">{scan.message}</p>}
     </section>
   )
 }

@@ -14,7 +14,7 @@ import flagTallSvg from '../../../../../docs/design/assets/flag-tall.svg?raw'
 import './result.css'
 
 type Props = {
-  winner: PlayerId
+  winner: PlayerId | 'draw'
   looks: Record<PlayerId, ScanneeLook>
 }
 
@@ -120,6 +120,13 @@ const FIREWORK_INNER = [
  * 見本：docs/design/screens/pc-10-win.html（「つぎは どうする?」のカードを除く）
  */
 export function ResultScreen({ winner, looks }: Props) {
+  if (winner === 'draw') return (
+    <HostStage className="result result--p1 ss-motion">
+      <h1 className="ss-display" style={{ textAlign: 'center', marginTop: 100, fontSize: 80 }}>ひきわけ!</h1>
+      {(['p1', 'p2'] as const).map((player, index) => <Scannee key={player} look={looks[player]} eyesUrl={happyEyesUrl}
+        label={`${players[player].label}の コマ`} style={{ position: 'absolute', left: 270 + index * 440, top: 270, width: 250, height: 227 }} />)}
+    </HostStage>
+  )
   const loser: PlayerId = winner === 'p1' ? 'p2' : 'p1'
   const winnerLabel = players[winner].label
   const winnerSpot = place(looks[winner], WINNER)

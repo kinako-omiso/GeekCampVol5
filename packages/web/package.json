@@ -10,6 +10,7 @@
     "test:quick-scan": "node --experimental-strip-types --test tests/quickScan.test.ts",
     "test:fighter-placement": "node --experimental-strip-types --test tests/fighterPlacement.test.ts",
     "test:visual-hull": "node --experimental-strip-types --test tests/visualHull.test.ts",
+    "test:production-flow": "node --experimental-strip-types --test tests/productionFlow.test.ts tests/assetTransport.test.ts tests/battleInput.test.ts tests/ringExit.test.ts tests/knockback.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

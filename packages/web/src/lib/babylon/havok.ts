@@ -9,11 +9,11 @@ import '@babylonjs/core/Physics/v2/physicsEngineComponent'
 let havokPromise: ReturnType<typeof HavokPhysics> | undefined
 
 /** 画面を開いたときだけ Havok Wasm を読み込む。 */
-export async function enableHavok(scene: Scene): Promise<void> {
+export async function enableHavok(scene: Scene, useDeltaForWorldStep = false): Promise<void> {
   try {
     havokPromise ??= HavokPhysics({ locateFile: () => havokWasmUrl })
     const havok = await havokPromise
-    if (!scene.enablePhysics(new Vector3(0, -9.81, 0), new HavokPlugin(false, havok))) {
+    if (!scene.enablePhysics(new Vector3(0, -9.81, 0), new HavokPlugin(useDeltaForWorldStep, havok))) {
       throw new Error('物理シーンを有効化できませんでした。')
     }
     scene.getPhysicsEngine()?.setTimeStep(1 / 60)

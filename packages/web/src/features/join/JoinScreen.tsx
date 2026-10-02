@@ -14,6 +14,8 @@ type Props = {
   player: PlayerId
   onCalibrated: (baseline: Baseline) => void
   connected?: boolean
+  onSensorEnabled?: () => void
+  onInteraction?: () => void
 }
 
 type Phase = 'start' | 'calibrating' | 'done' | 'denied' | 'unsupported'
@@ -28,7 +30,7 @@ const RESTART_LABELS = {
  * スマホ：接続画面。
  * 「タッチ!」でモーション権限を要求し、水準器の泡が真ん中に来るまで静止して基準姿勢を取る。
  */
-export function JoinScreen({ player, onCalibrated, connected }: Props) {
+export function JoinScreen({ player, onCalibrated, connected, onSensorEnabled, onInteraction }: Props) {
   const [phase, setPhase] = useState<Phase>('start')
   const [progress, setProgress] = useState(0)
   const [restartLabel, setRestartLabel] = useState('')
@@ -64,8 +66,9 @@ export function JoinScreen({ player, onCalibrated, connected }: Props) {
 
   // iOS では requestPermission をクリックの中で直接呼ぶ必要がある
   const handleTouch = async () => {
+    onInteraction?.()
     const result = await requestMotionPermission()
-    if (result === 'granted') startCalibration()
+    if (result === 'granted') { onSensorEnabled?.(); startCalibration() }
     else setPhase(result)
   }
 

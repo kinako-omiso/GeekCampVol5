@@ -19,6 +19,7 @@ export function stepMovement(
   seconds: number,
   right: PlanarVector,
   forward: PlanarVector,
+  stats: { moveSpeed: number; turnSpeed: number } = { moveSpeed: 1, turnSpeed: 240 },
 ): MovementState {
   const blend = 1 - Math.exp(-seconds / SMOOTHING_SECONDS)
   const smoothedX = state.smoothedX + (input.x - state.smoothedX) * blend
@@ -31,12 +32,12 @@ export function stepMovement(
   if (Math.hypot(worldX, worldZ) > 0.01) {
     const desired = Math.atan2(worldX, worldZ)
     const difference = Math.atan2(Math.sin(desired - yaw), Math.cos(desired - yaw))
-    const maxTurn = TURN_SPEED * seconds
+    const maxTurn = TURN_SPEED * (stats.turnSpeed / 240) * seconds
     yaw += Math.max(-maxTurn, Math.min(maxTurn, difference))
   }
   return {
-    x: state.x + worldX * MOVE_SPEED * seconds,
-    z: state.z + worldZ * MOVE_SPEED * seconds,
+    x: state.x + worldX * MOVE_SPEED * stats.moveSpeed * seconds,
+    z: state.z + worldZ * MOVE_SPEED * stats.moveSpeed * seconds,
     yaw,
     smoothedX,
     smoothedY,
