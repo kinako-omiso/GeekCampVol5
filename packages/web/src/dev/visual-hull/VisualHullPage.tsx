@@ -10,6 +10,9 @@ import type { MaskQuality } from '../../features/capture/pipeline/maskQuality'
 import type { MaskTimings, MaskWorkerResponse } from '../../features/capture/pipeline/visualHullMaskWorkerTypes'
 import type { VisualHullResponse } from '../../features/analyze/reconstruction/visualHullWorkerTypes'
 import type { ReconstructionResult } from '../../features/analyze/reconstruction/types'
+import { FighterPlacementScreen } from '../../features/orient/FighterPlacementScreen'
+import { PhysicsBattleTest } from '../../features/battle/ui/PhysicsBattleTest'
+import { createDefaultPlacement, prepareFighterModel, type FighterPlacement } from '../../features/battle/game/fighterPlacement'
 import { compareProjection } from './projectedSilhouette'
 import './visualHull.css'
 
@@ -82,6 +85,10 @@ function drawProjectionBounds(context: CanvasRenderingContext2D, photo: HTMLCanv
 }
 
 export default function VisualHullPage() {
+  const [flowStep, setFlowStep] = useState<'create' | 'placement' | 'battle'>('create')
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [placement, setPlacement] = useState<FighterPlacement | null>(null)
+  const [defaultPlacement, setDefaultPlacement] = useState<FighterPlacement | null>(null)
   const [frames, setFrames] = useState<Frame[]>(initialFrames)
   const [active, setActive] = useState(0)
   const [swapTarget, setSwapTarget] = useState(2)
@@ -90,7 +97,7 @@ export default function VisualHullPage() {
   const [batchStage, setBatchStage] = useState<'none' | 'choose-front' | 'front' | 'auto' | 'review'>('none')
   const [processingIndex, setProcessingIndex] = useState<number | null>(null)
   const [referencePoint, setReferencePoint] = useState<{ x: number; y: number } | null>(null)
-  const [status, setStatus] = useState('写真を4〜8枚まとめて選ぶか、方向ごとに読み込んでください。')
+  const [status, setStatus] = useState('写真を4枚まとめて選ぶか、方向ごとに読み込んでください。')
   const [error, setError] = useState('')
   const [output, setOutput] = useState<VisualHullOutput | null>(null)
   const [baseline, setBaseline] = useState<{ output: VisualHullOutput; options: Required<VisualHullOptions>; timing: typeof generationTiming } | null>(null)
@@ -116,6 +123,9 @@ export default function VisualHullPage() {
   const generationStartRef = useRef(0)
   const workerDoneRef = useRef(0)
   const importedOutputRef = useRef(false)
+  const firstFrameMeasuredRef = useRef(false)
+  const model = useMemo(() => output && geometry ? { reconstruction: output.reconstruction, geometry } : null, [output, geometry])
+  const battleOptions = useMemo(() => model && placement ? { fighters: { p1: { ...model, placement } } } : undefined, [model, placement])
   const current = frames[active]
   const comparisons = useMemo(() => output ? frames.map((frame) => frame.mask ?
     compareProjection(output, createFixedCamera(frame.mask.width, frame.mask.height, frame.yaw), frame.mask) : null) :
@@ -187,7 +197,7 @@ export default function VisualHullPage() {
       if (stroke.points.length === 1) { const p = stroke.points[0]; context.arc(p.x * photo.width, p.y * photo.height, context.lineWidth / 2, 0, Math.PI * 2); context.fill() }
       else context.stroke()
     }
-  }, [current, active, comparisons, drawTick, output])
+  }, [current, active, comparisons, drawTick, output, flowStep])
   useEffect(() => {
     const pending = frames.map((frame, index) => frame.mask && frame.maskResponseAt && frame.displayMs === null ?
       { index, id: frame.id, mask: frame.mask, responseAt: frame.maskResponseAt, requestedAt: frame.maskRequestedAt } : null)
@@ -218,9 +228,10 @@ export default function VisualHullPage() {
       pixels.data[index * 4 + 3] = 255
     }
     context.putImageData(pixels, 0, 0)
-  }, [output, slice])
+  }, [output, slice, flowStep, advancedOpen])
 
-  const invalidate = () => { setOutput(null); setBaseline(null); setOutputOptions(null); setGeometry(null); setGenerationTiming(null) }
+  const resetPlacement = () => { setPlacement(null); setDefaultPlacement(null); setFlowStep('create') }
+  const invalidate = () => { resetPlacement(); setOutput(null); setBaseline(null); setOutputOptions(null); setGeometry(null); setGenerationTiming(null) }
   const changeFrame = (index: number, update: Partial<Frame>) => {
     setFrames((previous) => previous.map((frame, i) => {
       if (i !== index) return frame
@@ -482,6 +493,8 @@ export default function VisualHullPage() {
     const views = frames.filter((frame): frame is Frame & { mask: SilhouetteMask } => frame.mask !== null)
       .map((frame) => ({ mask: frame.mask, camera: createFixedCamera(frame.mask.width, frame.mask.height, frame.yaw) }))
     if (output && outputOptions) setBaseline({ output, options: outputOptions, timing: generationTiming })
+    resetPlacement()
+    firstFrameMeasuredRef.current = false
     setBusy(true); setError(''); setOutput(null); setGeometry(null); setGenerationTiming(null)
     setStatus('96³ Voxelの再構成と形状解析を実行しています。')
     reconstructionWorkerRef.current?.terminate()
@@ -508,7 +521,8 @@ export default function VisualHullPage() {
     worker.postMessage({ id, views, options })
   }
   const onFirstFrame = useCallback(() => {
-    if (importedOutputRef.current) return
+    if (importedOutputRef.current || firstFrameMeasuredRef.current) return
+    firstFrameMeasuredRef.current = true
     const now = performance.now(), totalMs = now - generationStartRef.current
     setGenerationTiming((previous) => previous ? { ...previous, displayMs: now - workerDoneRef.current, totalMs } : previous)
     setGenerationSamples((previous) => [...previous, totalMs])
@@ -608,6 +622,8 @@ export default function VisualHullPage() {
             principalAxes: Float32Array.from(saved.principalAxes as number[]) } as GeometryResult
         }
       }
+      resetPlacement()
+      setAdvancedOpen(restored.some((frame, index) => !DIRECTIONS[index].required && frame.photo !== null))
       importedOutputRef.current = true
       setFrames(restored); setOutput(loadedOutput); setBaseline(null); setGeometry(restoredGeometry)
       setOptions({ surface: savedOptions?.surface === 'interpolated' ? 'interpolated' : 'binary',
@@ -622,9 +638,43 @@ export default function VisualHullPage() {
     finally { setBusy(false) }
   }
 
+  const enterPlacement = async () => {
+    if (!output || busy) return
+    const requestedOutput = output
+    setBusy(true); setError('')
+    try {
+      const analysis = geometry ?? await (await import('@gikcamp/geometry-wasm')).analyzeGeometry({
+        ...requestedOutput.reconstruction, source: 'reconstruction',
+      })
+      const automatic = createDefaultPlacement(requestedOutput.reconstruction, frames[0].yaw)
+      const selected = placement ?? automatic
+      // 入力途中の補正値も保持して調整画面へ戻せるよう、モデルの検証は自動配置で行う。
+      prepareFighterModel({ reconstruction: requestedOutput.reconstruction, geometry: analysis, placement: automatic })
+      setGeometry(analysis); setDefaultPlacement(automatic); setPlacement(selected); setFlowStep('placement')
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '配置調整の準備に失敗しました。') }
+    finally { setBusy(false) }
+  }
+  const renderDirection = (index: number) => {
+    const direction = DIRECTIONS[index]
+    return <button type="button" key={direction.label}
+      className={active === index ? 'active' : ''} disabled={busy || (batchStage === 'auto' && index !== 0 && !frames[index].mask)} onClick={() => { draftRef.current = null; setActive(index); setMode('add') }}>
+      {frames[index].thumbnail && (batchStage !== 'auto' || !!frames[index].mask) && <img src={frames[index].thumbnail} alt="" />}
+      {direction.label}{direction.required ? ' *' : ''}<small>{processingIndex === index ? '画像から探索中' : frames[index].quality?.needsReview ? `要確認: ${frames[index].quality.reason}` :
+        frames[index].mask ? 'Mask候補あり' : frames[index].photo ? '指定待ち' : '写真なし'}</small></button>
+  }
+
+  if (flowStep !== 'create' && model && placement && defaultPlacement) {
+    return <main className="visual-hull-page">
+      <header><p>ISSUE #49 · 作成 → 配置調整 → 対戦検証</p><h1>{flowStep === 'placement' ? 'モデルの配置調整' : '生成モデルで対戦を確認'}</h1></header>
+      {flowStep === 'placement' ? <FighterPlacementScreen model={model} placement={placement} defaultPlacement={defaultPlacement}
+        onChange={setPlacement} onBack={() => setFlowStep('create')} onConfirm={() => setFlowStep('battle')} /> :
+        <><p>1P（青）は生成モデル、2P（赤）は既存サンプルです。</p><PhysicsBattleTest options={battleOptions} onBack={() => setFlowStep('placement')} /></>}
+    </main>
+  }
+
   return <main className="visual-hull-page">
-    <header><a href="/dev/photo-model">Quick Scanへ</a><p>ISSUE #32 · VISUAL HULL</p><h1>複数方向の写真から立体を作る</h1>
-      <p>正面・右・背面・左の4方向が必須です。一括取込後に写真一覧から正面を選び、正面の対象を指定してください。残りの写真は元の読込順で右→背面→左→右前→右後→左後→左前に割り当てます。方向は後から入れ替えられます。正面Maskを作った後、他方向の候補を自動で探します。カメラの高さと距離をそろえて撮影してください。</p></header>
+    <header><a href="/dev/photo-model">Quick Scanへ</a><p>ISSUE #32 / #49 · 作成 → 配置調整 → 対戦検証</p><h1>複数方向の写真から立体を作る</h1>
+      <p>正面・右・背面・左の4方向を一括または個別に取り込みます。一括取込では正面を選んで対象を指定すると、残りの写真のMask候補を自動で探します。カメラの高さと距離をそろえて撮影してください。生成後は配置調整と対戦検証へ進めます。</p></header>
     {batchStage === 'choose-front' ? <section className="visual-hull-front-choice" aria-label="正面写真を選ぶ">
       <h2>正面の写真を選んでください</h2>
       <p>写真を選ぶと、その写真だけを大きく表示してMask指定へ進みます。</p>
@@ -634,32 +684,52 @@ export default function VisualHullPage() {
           <img src={frames[slot].thumbnail} alt="" /><span>写真{order + 1} · {frames[slot].name}</span>
           <strong>この写真を正面にする</strong>
         </button>)}</div>
-    </section> : <nav className="visual-hull-directions" aria-label="撮影方向">{(batchStage === 'front' ? DIRECTIONS.slice(0, 1) : DIRECTIONS).map((direction, index) => <button type="button" key={direction.label}
-      className={active === index ? 'active' : ''} disabled={busy || (batchStage === 'auto' && index !== 0 && !frames[index].mask)} onClick={() => { draftRef.current = null; setActive(index); setMode('add') }}>
-      {frames[index].thumbnail && (batchStage !== 'auto' || !!frames[index].mask) && <img src={frames[index].thumbnail} alt="" />}
-      {direction.label}{direction.required ? ' *' : ''}<small>{processingIndex === index ? '画像から探索中' : frames[index].quality?.needsReview ? `要確認: ${frames[index].quality.reason}` :
-        frames[index].mask ? 'Mask候補あり' : frames[index].photo ? '指定待ち' : '写真なし'}</small></button>)}</nav>}
+    </section> : <nav className="visual-hull-directions" aria-label="撮影方向">{(batchStage === 'front' ? [0] : [0, 2, 4, 6]).map(renderDirection)}</nav>}
     <section className="visual-hull-toolbar">
-      <label>4〜8枚を一括取込 <input type="file" accept="image/*" multiple disabled={busy || batchStage === 'auto'} onChange={(event) => { void selectFiles(Array.from(event.currentTarget.files ?? []), true); event.currentTarget.value = '' }} /></label>
+      <label>4枚を一括取込 <input type="file" accept="image/*" multiple disabled={busy || batchStage === 'auto'} onChange={(event) => {
+        const files = Array.from(event.currentTarget.files ?? [])
+        if (files.length && files.length !== 4) setError('通常の一括取込は4枚です。5〜8枚は詳細から取り込んでください。')
+        else void selectFiles(files, true)
+        event.currentTarget.value = ''
+      }} /></label>
       {batchStage !== 'front' && batchStage !== 'choose-front' && <><label>選択方向の写真 <input type="file" accept="image/*" disabled={busy || batchStage === 'auto'} onChange={(event) => { void selectFiles(Array.from(event.currentTarget.files ?? []), false); event.currentTarget.value = '' }} /></label>
       <label>方位角 <input type="number" min="0" max="359" value={current.yaw} disabled={busy || batchStage === 'auto'} onChange={(event) => changeFrame(active, { yaw: Number(event.currentTarget.value) })} />°</label>
-      <label>入れ替え先 <select value={swapTarget} disabled={busy || batchStage === 'auto'} onChange={(event) => setSwapTarget(Number(event.currentTarget.value))}>{DIRECTIONS.map((direction, index) => <option value={index} key={direction.label}>{direction.label}</option>)}</select></label>
+      <label>入れ替え先 <select value={swapTarget} disabled={busy || batchStage === 'auto'} onChange={(event) => setSwapTarget(Number(event.currentTarget.value))}>{DIRECTIONS.map((direction, index) => (direction.required || advancedOpen) && <option value={index} key={direction.label}>{direction.label}</option>)}</select></label>
       <button type="button" disabled={busy || batchStage === 'auto' || swapTarget === active} onClick={swapFrames}>割当を入れ替え</button>
       <button type="button" disabled={busy || batchStage === 'auto' || !current.photo} onClick={() => setMode('add')} aria-pressed={mode === 'add'}>追加</button>
       <button type="button" disabled={busy || batchStage === 'auto' || !current.photo} onClick={() => setMode('remove')} aria-pressed={mode === 'remove'}>除外</button>
       <button type="button" disabled={busy || batchStage === 'auto' || !current.photo} onClick={() => changeFrame(active, { strokes: [], appliedStrokeCount: 0, mask: null, quality: null, timings: null })}>指定をやり直す</button>
       <button type="button" disabled={busy || batchStage === 'auto' || !current.strokes.length} onClick={() => { void applyStrokes() }}>修正を反映</button>
-      <button type="button" disabled={busy || batchStage === 'auto' || !current.mask} onClick={() => { void benchmarkDelegate() }}>CPU/GPU比較</button>
-      <button type="button" disabled={busy || batchStage === 'auto'} onClick={() => { void compareWorkerCounts() }}>1/2 Worker比較</button></>}
+      </>}
     </section>
-    {batchStage !== 'front' && batchStage !== 'choose-front' && <section className="visual-hull-toolbar">
-      <label>面 <select value={options.surface} disabled={busy || batchStage === 'auto'} onChange={(event) => setOptions({ ...options, surface: event.currentTarget.value as 'binary' | 'interpolated' })}><option value="interpolated">輪郭補間</option><option value="binary">二値中点</option></select></label>
-      <label><input type="checkbox" checked={options.adaptiveBounds} disabled={busy || batchStage === 'auto'} onChange={(event) => setOptions({ ...options, adaptiveBounds: event.currentTarget.checked })} />占有範囲へ計算領域を合わせる</label>
-      <button type="button" className="primary" disabled={busy || batchStage === 'auto'} onClick={generate}>Visual Hullを生成</button>
-      <button type="button" disabled={!output} onClick={exportBundle}>写真・Mask・モデルを保存</button>
-      <label>保存データを再読込 <input type="file" accept="application/json,.json" disabled={busy || batchStage === 'auto'} onChange={(event) => { void importBundle(event.currentTarget.files?.[0]); event.currentTarget.value = '' }} /></label>
-    </section>}
-    <p role="status">{busy ? '処理中 · ' : ''}{status}</p>{error && <p className="visual-hull-error" role="alert">{error}</p>}{benchResult && <p>{benchResult}</p>}{maskBatchResult && <p>{maskBatchResult}</p>}
+    {batchStage !== 'front' && batchStage !== 'choose-front' && <>
+      <section className="visual-hull-toolbar">
+        <button type="button" className="primary" disabled={busy || batchStage === 'auto'} onClick={generate}>Visual Hullを生成</button>
+        <button type="button" className="primary" disabled={busy || batchStage === 'auto' || !output} onClick={() => { void enterPlacement() }}>配置調整へ進む</button>
+      </section>
+      <details className="visual-hull-advanced" open={advancedOpen} onToggle={(event) => {
+        const open = event.currentTarget.open
+        setAdvancedOpen(open)
+        if (!open && !DIRECTIONS[active].required) setActive(0)
+        if (!open && !DIRECTIONS[swapTarget].required) setSwapTarget(2)
+      }}>
+        <summary>8方向・検証の詳細（任意方向の写真 {frames.filter((frame, index) => !DIRECTIONS[index].required && frame.photo).length} 枚）</summary>
+        {advancedOpen && <>
+          <nav className="visual-hull-directions" aria-label="任意の撮影方向">{[1, 3, 5, 7].map(renderDirection)}</nav>
+          <section className="visual-hull-toolbar">
+            <label>4〜8枚を一括取込 <input type="file" accept="image/*" multiple disabled={busy || batchStage === 'auto'} onChange={(event) => { void selectFiles(Array.from(event.currentTarget.files ?? []), true); event.currentTarget.value = '' }} /></label>
+            <button type="button" disabled={busy || batchStage === 'auto' || !current.mask} onClick={() => { void benchmarkDelegate() }}>CPU/GPU比較</button>
+            <button type="button" disabled={busy || batchStage === 'auto'} onClick={() => { void compareWorkerCounts() }}>1/2 Worker比較</button>
+            <label>面 <select value={options.surface} disabled={busy || batchStage === 'auto'} onChange={(event) => setOptions({ ...options, surface: event.currentTarget.value as 'binary' | 'interpolated' })}><option value="interpolated">輪郭補間</option><option value="binary">二値中点</option></select></label>
+            <label><input type="checkbox" checked={options.adaptiveBounds} disabled={busy || batchStage === 'auto'} onChange={(event) => setOptions({ ...options, adaptiveBounds: event.currentTarget.checked })} />占有範囲へ計算領域を合わせる</label>
+            <button type="button" disabled={busy || !output} onClick={exportBundle}>写真・Mask・モデルを保存</button>
+            <label>保存データを再読込 <input type="file" accept="application/json,.json" disabled={busy || batchStage === 'auto'} onChange={(event) => { void importBundle(event.currentTarget.files?.[0]); event.currentTarget.value = '' }} /></label>
+          </section>
+          {benchResult && <p>{benchResult}</p>}{maskBatchResult && <p>{maskBatchResult}</p>}
+        </>}
+      </details>
+    </>}
+    <p role="status">{busy ? '処理中 · ' : ''}{status}</p>{error && <p className="visual-hull-error" role="alert">{error}</p>}
     {batchStage !== 'choose-front' && <div className={`visual-hull-columns ${batchStage === 'front' ? 'front-stage' : ''}`}>
       <section className="visual-hull-panel"><h2>{DIRECTIONS[active].label} · 写真とMask</h2>
         {current.photo ? <div className="visual-hull-image-wrap"><canvas ref={imageRef} aria-label="選択した写真" />
@@ -669,17 +739,19 @@ export default function VisualHullPage() {
           : <p>この方向の写真を選んでください。</p>}
         <p>緑: Mask / 黄: 生成モデルの再投影輪郭 / ストロークは「修正を反映」でまとめて推論します。</p>
         {current.quality && <p>{current.quality.needsReview ? `要確認: ${current.quality.reason}` : '自動候補: 問題の兆候なし'}（面積 {(current.quality.fraction * 100).toFixed(1)}%）</p>}
-        {current.timings && <p>{current.timings.attempts ? `候補探索 ${current.timings.searchMs?.toFixed(0)} ms / 候補推論 ${current.timings.attempts}回 / ` : ''}指定完了→Maskサムネイル表示 {current.selectionToDisplayMs?.toFixed(0) ?? '未表示'} ms / 推論 {current.timings.segmentMs.toFixed(0)} ms / 表示 {current.displayMs?.toFixed(0) ?? '未表示'} ms<br />写真準備 {current.loadMs.toFixed(0)} ms / モデル準備 {current.timings.modelLoadMs.toFixed(0)} ms / 縮小 {current.timings.resizeMs.toFixed(0)} ms / setImage {current.timings.setImageMs.toFixed(0)} ms / 推論 {current.timings.segmentMs.toFixed(0)} ms / Mask変換 {current.timings.conversionMs.toFixed(0)} ms</p>}
-        {comparisons[active] && <p>Maskと再投影の一致度 IoU {comparisons[active]!.iou.toFixed(3)}</p>}
+        <details><summary>写真とMaskの計測値</summary>{current.timings && <p>{current.timings.attempts ? `候補探索 ${current.timings.searchMs?.toFixed(0)} ms / 候補推論 ${current.timings.attempts}回 / ` : ''}指定完了→Maskサムネイル表示 {current.selectionToDisplayMs?.toFixed(0) ?? '未表示'} ms / 推論 {current.timings.segmentMs.toFixed(0)} ms / 表示 {current.displayMs?.toFixed(0) ?? '未表示'} ms<br />写真準備 {current.loadMs.toFixed(0)} ms / モデル準備 {current.timings.modelLoadMs.toFixed(0)} ms / 縮小 {current.timings.resizeMs.toFixed(0)} ms / setImage {current.timings.setImageMs.toFixed(0)} ms / 推論 {current.timings.segmentMs.toFixed(0)} ms / Mask変換 {current.timings.conversionMs.toFixed(0)} ms</p>}
+        {comparisons[active] && <p>Maskと再投影の一致度 IoU {comparisons[active]!.iou.toFixed(3)}</p>}</details>
       </section>
       {batchStage !== 'front' && <section className="visual-hull-panel"><h2>3Dモデルと解析結果</h2>
-        {baseline && <div className="visual-hull-comparison"><h3>比較前 · {baseline.output.metrics.voxelSide}³ / {baseline.options.surface === 'binary' ? '二値中点' : '輪郭補間'}</h3><ModelPreview reconstruction={baseline.output.reconstruction} onError={setError} onFirstFrame={noOp} /><p>再構成 {baseline.output.metrics.carvingAndMeshMs.toFixed(0)} ms / 頂点 {baseline.output.metrics.vertexCount.toLocaleString()} / 三角形 {baseline.output.metrics.triangleCount.toLocaleString()} / Mask確定後から表示 {baseline.timing?.totalMs.toFixed(0) ?? '未測定'} ms</p></div>}
         {output ? <div className="visual-hull-comparison"><h3>現在 · {output.metrics.voxelSide}³ / {outputOptions?.surface === 'binary' ? '二値中点' : '輪郭補間'}</h3><ModelPreview reconstruction={output.reconstruction} onError={setError} onFirstFrame={onFirstFrame} /></div> : <div className="visual-hull-placeholder">4〜8方向のMaskをそろえて生成してください。</div>}
+        {advancedOpen && <div className="visual-hull-metrics">
+        {baseline && <div className="visual-hull-comparison"><h3>比較前 · {baseline.output.metrics.voxelSide}³ / {baseline.options.surface === 'binary' ? '二値中点' : '輪郭補間'}</h3><ModelPreview reconstruction={baseline.output.reconstruction} onError={setError} onFirstFrame={noOp} /><p>再構成 {baseline.output.metrics.carvingAndMeshMs.toFixed(0)} ms / 頂点 {baseline.output.metrics.vertexCount.toLocaleString()} / 三角形 {baseline.output.metrics.triangleCount.toLocaleString()} / Mask確定後から表示 {baseline.timing?.totalMs.toFixed(0) ?? '未測定'} ms</p></div>}
         {output && <><p>占有Voxel {output.metrics.voxelCount.toLocaleString()} / 頂点 {output.metrics.vertexCount.toLocaleString()} / 三角形 {output.metrics.triangleCount.toLocaleString()} / 再構成本体 {output.metrics.carvingAndMeshMs.toFixed(0)} ms / 面向き補正 {output.metrics.windingCorrections ?? 0}面 / 境界修復 {output.metrics.sealedFaces ?? 0}面{output.metrics.clipped ? ' / 領域端への接触あり' : ''}</p>
           <label>Voxel断面 z={slice} <input type="range" min="0" max={output.metrics.voxelSide - 1} value={slice} onChange={(event) => setSlice(Number(event.currentTarget.value))} /></label>
           <canvas ref={sliceRef} className="visual-hull-slice" aria-label="Voxel断面" /></>}
         {generationTiming && <p>再構成Worker {generationTiming.reconstructionMs.toFixed(0)} ms / 形状解析 {generationTiming.geometryMs.toFixed(0)} ms / 3D画面表示 {generationTiming.displayMs.toFixed(0)} ms / Mask確定後から表示 {generationTiming.totalMs.toFixed(0)} ms{p95 !== null ? ` / この画面でのp95 ${p95.toFixed(0)} ms（${generationSamples.length}回）` : ''}</p>}
         {geometry && <p>暫定能力値: HP {geometry.stats.hp} / 攻撃 {geometry.stats.attack} / リーチ {geometry.stats.reach} / 旋回 {geometry.stats.turnSpeed} / 移動 {geometry.stats.moveSpeed}<br />体積 {geometry.volume.toFixed(3)} / 3D凸包 {geometry.hullIndices.length / 3}面 / 重心 {geometry.centerOfMass.map((v) => v.toFixed(2)).join(', ')}（{geometry.statsVersion}）</p>}
+        </div>}
       </section>}
     </div>}
   </main>

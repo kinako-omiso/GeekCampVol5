@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint src",
     "test:quick-scan": "node --experimental-strip-types --test tests/quickScan.test.ts",
+    "test:fighter-placement": "node --experimental-strip-types --test tests/fighterPlacement.test.ts",
     "test:visual-hull": "node --experimental-strip-types --test tests/visualHull.test.ts",
     "preview": "vite preview"
   },
