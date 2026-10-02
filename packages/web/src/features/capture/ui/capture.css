@@ -373,3 +373,239 @@
 .capture-editor__image { min-height: 0; min-width: 0; flex: 1; display: flex; align-items: center; justify-content: center; }
 .capture-editor canvas { max-height: 100%; max-width: 100%; object-fit: contain; touch-action: none; }
 .capture-review__tabs { display: flex; gap: 8px; justify-content: center; }
+
+/* ---- 本番の4枚撮影（CaptureScreen）。見本 phone-02-scan と同じく、左に写真・右にプレイヤー色のパネル ---- */
+.capture-shot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(var(--u) * 232);
+}
+.capture-shot__main {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--ss-ink);
+}
+.capture-shot__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 左上：いまの段階と撮り方の案内。下の写真をなぞれるように触れないようにする */
+.capture-shot__header {
+  position: absolute;
+  left: calc(var(--u) * 16);
+  top: calc(var(--u) * 14);
+  right: calc(var(--u) * 16);
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--u) * 8);
+  pointer-events: none;
+}
+.capture-shot__phase {
+  padding: calc(var(--u) * 6) calc(var(--u) * 18) calc(var(--u) * 8);
+  background: var(--ss-sun);
+  border: calc(var(--u) * 5) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  box-shadow: 0 calc(var(--u) * 5) 0 var(--ss-ink);
+  color: var(--ss-ink);
+  font-size: calc(var(--u) * 24);
+  font-weight: normal;
+}
+.capture-shot__hint,
+.capture-shot__tips {
+  padding: calc(var(--u) * 4) calc(var(--u) * 12);
+  background: var(--ss-cream);
+  border: calc(var(--u) * 4) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  color: var(--ss-ink);
+  font-size: calc(var(--u) * 14);
+}
+.capture-shot__tips {
+  position: absolute;
+  left: calc(var(--u) * 16);
+  bottom: calc(var(--u) * 16);
+  margin: 0;
+  font-size: calc(var(--u) * 17);
+  pointer-events: none;
+}
+.capture-shot__error {
+  margin: 0;
+  padding: calc(var(--u) * 4) calc(var(--u) * 14);
+  border: calc(var(--u) * 4) solid var(--ss-sun);
+  border-radius: var(--ss-radius-pill);
+  /* 赤は 2P の色なので、エラーは墨色の地に黄色のふちで目立たせる */
+  background: var(--ss-ink);
+  color: #fff;
+  font-size: calc(var(--u) * 14);
+}
+
+/* 正面えらび：4枚を 2×2 で並べる */
+.capture-shot__photos {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--u) * 10);
+  /* 上は案内のピル2段ぶんあける */
+  padding: calc(var(--u) * 104) calc(var(--u) * 16) calc(var(--u) * 16);
+}
+.capture-shot__photo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 2);
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: calc(var(--u) * 4);
+  background: var(--ss-cream);
+  border: calc(var(--u) * 4) solid var(--ss-ink);
+  border-radius: calc(var(--u) * 16);
+  box-shadow: 0 calc(var(--u) * 5) 0 var(--ss-ink);
+  font-size: calc(var(--u) * 15);
+}
+.capture-shot__photo img {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  border-radius: calc(var(--u) * 10);
+  background: var(--ss-ink);
+}
+.capture-shot__photo:active { transform: translateY(calc(var(--u) * 5)); box-shadow: none; }
+
+/* ぬりぬり：写真を左いっぱいに出し、ぬる/けす を左下のピルにまとめる */
+.capture-shot .capture-editor {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.capture-shot .capture-editor__image {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.capture-shot .capture-editor canvas { max-width: 100%; max-height: 100%; touch-action: none; }
+.capture-shot .capture-editor__tools {
+  position: absolute;
+  left: calc(var(--u) * 16);
+  bottom: calc(var(--u) * 16);
+  z-index: 1;
+  display: flex;
+  flex-direction: row;
+  gap: calc(var(--u) * 4);
+  padding: calc(var(--u) * 5);
+  background: var(--ss-cream);
+  border: calc(var(--u) * 5) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+}
+.capture-shot .capture-editor__tools button {
+  height: calc(var(--u) * 40);
+  padding: 0 calc(var(--u) * 16);
+  border: none;
+  border-radius: var(--ss-radius-pill);
+  background: transparent;
+  font-size: calc(var(--u) * 18);
+}
+.capture-shot .capture-editor__tools button[aria-pressed='true'] { background: var(--player); color: #fff; }
+.capture-shot .capture-editor__tools button:disabled { opacity: 0.45; cursor: default; }
+.capture-shot .capture-editor > p {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--u) * 80);
+  margin: 0;
+  transform: translateX(-50%);
+  color: #fff;
+}
+
+/* 右：プレイヤー色のパネル */
+.capture-shot__side {
+  box-sizing: border-box;
+  min-height: 0;
+  background: var(--player);
+  border-left: calc(var(--u) * 6) solid var(--ss-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 12);
+  padding: calc(var(--u) * 14) calc(var(--u) * 16);
+}
+.capture-shot__player { font-size: calc(var(--u) * 40); color: #fff; }
+.capture-shot__shutter {
+  position: relative;
+  flex-shrink: 0;
+  width: calc(var(--u) * 150);
+  height: calc(var(--u) * 150);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--ss-cream);
+  border: calc(var(--u) * 7) solid var(--ss-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: capture-ring 1.3s ease-out infinite;
+}
+.capture-shot__shutter:active { transform: scale(0.94); }
+.capture-shot__shutter:disabled { opacity: 0.5; animation: none; cursor: default; }
+.capture-shot__shutter-label { position: relative; font-size: calc(var(--u) * 30); }
+.capture-shot__ok,
+.capture-shot__action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--u) * 190);
+  box-sizing: border-box;
+  border: calc(var(--u) * 5) solid var(--ss-ink);
+  border-radius: calc(var(--u) * 22);
+  box-shadow: 0 calc(var(--u) * 5) 0 var(--ss-ink);
+}
+.capture-shot__ok {
+  height: calc(var(--u) * 96);
+  border-width: calc(var(--u) * 6);
+  border-radius: calc(var(--u) * 24);
+  box-shadow: 0 calc(var(--u) * 6) 0 var(--ss-ink);
+  background: var(--ss-sun);
+  font-size: calc(var(--u) * 28);
+  animation: capture-glow 1.2s ease-out infinite;
+}
+.capture-shot__action {
+  height: calc(var(--u) * 50);
+  background: var(--ss-cream);
+  font-size: calc(var(--u) * 16);
+  white-space: nowrap;
+}
+.capture-shot__ok:active,
+.capture-shot__action:active { transform: translateY(calc(var(--u) * 5)); box-shadow: none; }
+.capture-shot__ok:disabled,
+.capture-shot__action:disabled { opacity: 0.5; animation: none; cursor: default; transform: none; }
+.capture-shot__assign {
+  margin-top: auto;
+  color: #fff;
+  font-size: calc(var(--u) * 13);
+  text-align: center;
+}
+
+/* 送信中の進み具合（見本の太いバー） */
+.capture-shot__progress {
+  width: calc(var(--u) * 440);
+  height: calc(var(--u) * 30);
+  box-sizing: border-box;
+  border: calc(var(--u) * 5) solid var(--ss-cream);
+  border-radius: var(--ss-radius-pill);
+  overflow: hidden;
+  appearance: none;
+  background: transparent;
+}
+.capture-shot__progress::-webkit-progress-bar { background: transparent; }
+.capture-shot__progress::-webkit-progress-value { background: var(--ss-sun); }
+.capture-shot__progress::-moz-progress-bar { background: var(--ss-sun); }
