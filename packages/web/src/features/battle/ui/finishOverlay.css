@@ -2,7 +2,8 @@
  * 見本：docs/design/screens/pc-08-finish.html（座標は 1280×720 のステージ上の px）
  * 見本は 3.85 秒でくり返すが、ここでは --finish-duration を1回だけ再生する。keyframes の % は見本と同じ。
  * 衝撃の輪・星・暗転の中心は --hit-x / --hit-y（最後の一撃が当たった所）に合わせる。
- * 動きを止めたとき（prefers-reduced-motion）は、上下の帯と文字だけが見えている状態になるようにしておく。
+ * 上下の黒い帯は暗転ストップの間だけ出し、吹き出し（KO! など）が出るときに引っ込める（見本では最後まで出ている）。
+ * 動きを止めたとき（prefers-reduced-motion）は、文字だけが見えている状態になるようにしておく。
  */
 
 /* 対戦の canvas と HUD の上に重ねる層。PC はプレイヤーが触らないので、クリックは下に通す */
@@ -254,7 +255,7 @@
   animation-timing-function: ease-out;
 }
 
-/* ---- 上下の黒い帯・フラッシュ ---- */
+/* ---- 上下の黒い帯・フラッシュ。帯はふだん画面の外に置いておく ---- */
 .finish__bar {
   position: absolute;
   left: 0;
@@ -265,10 +266,12 @@
 }
 .finish__bar--top {
   top: 0;
+  transform: translateY(-100%);
   animation-name: finish-bar-top;
 }
 .finish__bar--bottom {
   bottom: 0;
+  transform: translateY(100%);
   animation-name: finish-bar-bottom;
 }
 .finish__flash {
@@ -305,15 +308,16 @@
 }
 @keyframes finish-lines { 0%, 18.18% { opacity: 0; } 20.91%, 93.64% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes finish-flash { 0%, 17.27% { opacity: 0; } 19.09% { opacity: 0.95; } 25.45%, 100% { opacity: 0; } }
+/* 吹き出しが入り始める 20% から入りきる 26.36% までに引っ込める */
 @keyframes finish-bar-top {
   0% { transform: translateY(-100%); }
-  5.45%, 93.64% { transform: translateY(0); }
-  100% { transform: translateY(-100%); }
+  5.45%, 20% { transform: translateY(0); }
+  26.36%, 100% { transform: translateY(-100%); }
 }
 @keyframes finish-bar-bottom {
   0% { transform: translateY(100%); }
-  5.45%, 93.64% { transform: translateY(0); }
-  100% { transform: translateY(100%); }
+  5.45%, 20% { transform: translateY(0); }
+  26.36%, 100% { transform: translateY(100%); }
 }
 @keyframes finish-ring-white {
   0%, 19% { transform: scale(0.1); opacity: 0; }
