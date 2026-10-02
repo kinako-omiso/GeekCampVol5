@@ -1,6 +1,6 @@
 /* 本番PC画面の待機・結果操作・通信断表示。 */
 .host-loading { text-align: center; padding-top: 240px; font-size: 24px; }
-.host-result-actions { position: fixed; right: 8vw; bottom: 12vh; color: var(--ss-ink); font-size: 24px; z-index: 10; }
+.host-result-actions { position: fixed; left: 2vw; bottom: 2vh; color: var(--ss-ink); font-size: 24px; z-index: 10; }
 .host-result-actions button { padding: 16px 28px; background: var(--ss-cream); border: 4px solid var(--ss-ink); border-radius: 18px; font-size: 24px; }
 .host-reconnect { position: fixed; inset: 0; background: rgb(0 0 0 / 75%); z-index: 20; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .host-reconnect > div { display: flex; gap: 40px; }

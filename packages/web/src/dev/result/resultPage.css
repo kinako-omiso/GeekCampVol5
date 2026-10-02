@@ -1,0 +1,18 @@
+/* #45の確認用ボタン。ステージ上端にまとめ、結果のカードと重ねない。 */
+.result-preview-controls {
+  position: fixed;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 75%);
+  color: white;
+}
+.result-preview-controls button { white-space: nowrap; cursor: pointer; }
+.result-preview-controls button[aria-pressed="true"] { background: var(--ss-sun); }
+.result-preview-controls fieldset { display: flex; gap: 4px; }

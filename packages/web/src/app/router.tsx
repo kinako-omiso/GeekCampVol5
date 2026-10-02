@@ -46,6 +46,12 @@ export const router = createBrowserRouter([
     }),
   },
   {
+    path: '/dev/result',
+    lazy: async () => ({
+      Component: (await import('../dev/result/ResultPage')).ResultPage,
+    }),
+  },
+  {
     path: '/dev/visual-hull',
     lazy: async () => ({
       Component: (await import('../dev/visual-hull/VisualHullPage')).default,
