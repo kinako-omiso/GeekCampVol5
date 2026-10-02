@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { FighterStats } from '@gikcamp/protocol'
 import { HostStage } from '../../components/HostStage'
 import { Scannee } from '../../components/Scannee'
+import { fighterTypeFor } from '../../components/fighterType'
 import { SCANNEE_VIEW, type ScanneeLook } from '../../components/scanneeLook'
 import { Svg } from '../../components/Svg'
 import { players, timing, type PlayerId } from '../../../../../docs/design/tokens'
@@ -35,10 +36,10 @@ const ENTRANCE_SECONDS = timing.entrancePerPlayer
 type StatKey = 'attack' | 'reach' | 'moveSpeed'
 
 // 能力値の並び（見本と同じ3項目。対戦 HUD とも同じ）
-const STATS: { key: StatKey; icon: string; label: string; type: string }[] = [
-  { key: 'attack', icon: powerIcon, label: 'パワー', type: 'パワータイプ!' },
-  { key: 'reach', icon: reachIcon, label: 'リーチ', type: 'リーチタイプ!' },
-  { key: 'moveSpeed', icon: speedIcon, label: 'スピード', type: 'スピードタイプ!' },
+const STATS: { key: StatKey; icon: string; label: string }[] = [
+  { key: 'attack', icon: powerIcon, label: 'パワー' },
+  { key: 'reach', icon: reachIcon, label: 'リーチ' },
+  { key: 'moveSpeed', icon: speedIcon, label: 'スピード' },
 ]
 
 // ★の数。倍率 0.80〜1.25 を5段階に分ける（docs/design/README.md「仕様書との差分」13 の案）
@@ -49,11 +50,6 @@ function starsFor(value: number) {
   if (!Number.isFinite(value)) return 1
   const ratio = (value - STAR_RANGE.min) / (STAR_RANGE.max - STAR_RANGE.min)
   return Math.min(STAR_COUNT, Math.max(1, Math.floor(ratio * STAR_COUNT) + 1))
-}
-
-// タイプ名は一番高い能力値から決める（同じ値なら STATS の並びで前のもの）
-function typeFor(stats: FighterStats) {
-  return STATS.reduce((best, stat) => (stats[stat.key] > stats[best.key] ? stat : best)).type
 }
 
 /**
@@ -272,7 +268,7 @@ function PlayerEntrance({ player, fighter }: PlayerEntranceProps) {
 
           <div className="entrance__ribbon-row">
             <p className="ss-display entrance__ribbon">
-              {typeFor(fighter.stats)}
+              {fighterTypeFor(fighter.stats)}!
               <span className="entrance__shine" aria-hidden="true" />
             </p>
           </div>
