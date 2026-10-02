@@ -17,11 +17,8 @@ import checkIcon from '../../../../../docs/design/assets/icons/check.svg?raw'
 import phoneIcon from '../../../../../docs/design/assets/icons/phone.svg?raw'
 import './result.css'
 
-/**
- * 再戦の選択。again：同じコマでもう一度 / rescan：スキャンからやり直す。
- * スマホの結果画面（features/rematch）と同じ値。スマホから届くようになったら packages/protocol/ の型に置き換える
- */
-export type RematchChoice = 'again' | 'rescan'
+import type { RematchChoice } from '@gikcamp/protocol'
+export type { RematchChoice } from '@gikcamp/protocol'
 
 type Props = {
   winner: PlayerId | 'draw'

@@ -6,16 +6,13 @@ import { ScanProcessor } from '../../features/analyze/scanProcessor'
 import { maskToBlob, createScanLook } from '../../features/analyze/scanImages'
 import { BattleScreen } from '../../features/battle/ui/BattleScreen'
 import { LobbyScreen } from '../../features/lobby/LobbyScreen'
-import { ResultScreen, type RematchChoice } from '../../features/result/ResultScreen'
+import { ResultScreen } from '../../features/result/ResultScreen'
 import { HostPeerSession } from '../../lib/peer/hostPeerSession'
 import { buildControllerUrl } from '../../lib/peer/pairing'
 import { HostMatch, type HostMatchSnapshot } from './hostMatch'
 import type { PlayerSlot } from '@gikcamp/protocol'
 import '../../../../../docs/design/tokens.css'
 import './host.css'
-
-// #45は選択状況の表示まで。スマホの選択を受信するまでは未選択として表示する。
-const NO_REMATCH_CHOICES: Record<'p1' | 'p2', RematchChoice | null> = { p1: null, p2: null }
 
 export function HostFlow() {
   const [match, setMatch] = useState<HostMatch | null>(null)
@@ -48,9 +45,9 @@ export function HostFlow() {
       p2: { connected: state.players[2].connected, sensorReady: state.players[2].sensorReady, ready: state.players[2].ready },
     }} />}
     {state.step === 'scan' && <ScanProgressScreen players={{ p1: state.players[1], p2: state.players[2] }} />}
-    {state.step === 'battle' && <BattleScreen match={match} state={state} />}
+    {state.step === 'battle' && <BattleScreen key={state.roundId} match={match} state={state} />}
     {state.step === 'result' && state.result && state.players[1].look && state.players[2].look && <>
-      <ResultScreen winner={state.result.winner} looks={{ p1: state.players[1].look, p2: state.players[2].look }} choices={NO_REMATCH_CHOICES} />
+      <ResultScreen winner={state.result.winner} looks={{ p1: state.players[1].look, p2: state.players[2].look }} choices={{ p1: state.players[1].rematchChoice ?? null, p2: state.players[2].rematchChoice ?? null }} />
       <div className="host-result-actions"><p>{state.result.reason === 'hp' ? 'HPで けっちゃく!' : state.result.reason === 'out' ? '場外で けっちゃく!' : '時間ぎれ!'}</p>
         <button type="button" onClick={() => match.restart()}>ロビーへ もどる</button></div>
     </>}

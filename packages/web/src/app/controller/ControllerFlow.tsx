@@ -5,6 +5,7 @@ import { CaptureScreen, type CapturedScan } from '../../features/capture/ui/Capt
 import { MaskReviewScreen, type ReviewMask } from '../../features/capture/ui/MaskReviewScreen'
 import { JoinScreen } from '../../features/join/JoinScreen'
 import { PadScreen } from '../../features/pad/PadScreen'
+import { RematchScreen } from '../../features/rematch/RematchScreen'
 import { PhoneStage } from '../../components/PhoneStage'
 import { ControllerPeerSession } from '../../lib/peer/controllerPeerSession'
 import { parseControllerPairing } from '../../lib/peer/pairing'
@@ -54,8 +55,12 @@ export function ControllerFlow() {
       controlReceived: (control) => {
         if (control.type === 'flow-state') {
           if (roundRef.current && roundRef.current !== control.roundId) {
-            baselineRef.current = null; setBaseline(null); scanRef.current = null; setScan(null); clearMasks(); setCaptureKey((value) => value + 1)
-            session.sendControl({ type: 'sensor-reset' })
+            scanRef.current = null; setScan(null); clearMasks(); setCaptureKey((value) => value + 1)
+            // 再戦では基準姿勢を保持し、ロビーへ戻ったときだけ取得し直す。
+            if (control.phase === 'join') {
+              baselineRef.current = null; setBaseline(null)
+              session.sendControl({ type: 'sensor-reset' })
+            }
           }
           roundRef.current = control.roundId
           if (control.phase === 'capture' && !control.scanId && scanRef.current) {
@@ -159,7 +164,8 @@ export function ControllerFlow() {
         onClick={() => sessionRef.current?.sendControl({ type: 'scan-retry', scanId: flow.scanId! })}>とりなおす</button>
     </PhoneStage>}
     {baseline && flow.phase === 'battle' && <PadScreen player={player} connected={!flow.paused} onAttack={(button) => sessionRef.current?.sendAttack(button)} />}
-    {baseline && flow.phase === 'result' && <PhoneStage player={player} className="controller-waiting"><h1>{flow.winner === 'draw' ? 'ひきわけ!' : flow.winner === pairing.metadata.slot ? 'きみの かち!' : 'おつかれさま!'}</h1><p>PCで ロビーに もどってね</p></PhoneStage>}
+    {baseline && flow.phase === 'result' && <RematchScreen key={flow.roundId} player={player} initialChoice={flow.rematchChoice}
+      onChoose={(choice) => sessionRef.current?.sendControl({ type: 'rematch-choice', roundId: flow.roundId, choice })} />}
     {flow.phase === 'battle' && flow.paused && <div className="controller-status" role="status">{flow.resumeSeconds ? `${flow.resumeSeconds}秒で はじまるよ` : '接続を まっているよ'}</div>}
     {(message || sensorWarning) && <div className="controller-status" role="alert">{sensorWarning || message}
       {sensorWarning && <button type="button" onClick={() => { baselineRef.current = null; setBaseline(null); setSensorWarning('') }}>基準を とりなおす</button>}</div>}

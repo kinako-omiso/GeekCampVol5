@@ -201,6 +201,81 @@ test('配置できないモデルは理由を表示し、対象のプレイヤ�
   assert.equal(fixture.match.snapshot().players[2].status, 'capturing')
 })
 
+async function finishMatch(fixture: ReturnType<typeof setup>, winner: 'p1' | 'draw' = 'p1') {
+  for (const slot of [1, 2] as const) {
+    const scanId = await fixture.scan(slot)
+    fixture.match.control(slot, { type: 'scan-confirm', scanId, revisions: [0, 0, 0, 0] }); await flush()
+  }
+  fixture.match.battleSnapshot({ hp: { p1: 100, p2: 0 }, remainingSeconds: 30, radius: 6, shrinkWarning: false,
+    result: { winner, reason: 'hp' } })
+  return fixture.match.snapshot().roundId
+}
+
+test('再戦の選択を共有スキーマで検証し、古い試合や重複した選択を無視する', async (t) => {
+  const fixture = setup(t), roundId = await finishMatch(fixture)
+  const choose = { type: 'rematch-choice', roundId, choice: 'again' } as const
+  assert.ok(controlMessageSchema.safeParse(choose).success)
+  assert.equal(controlMessageSchema.safeParse({ ...choose, choice: 'invalid' }).success, false)
+  assert.equal(controlMessageSchema.safeParse({ ...choose, roundId: 'invalid' }).success, false)
+  fixture.match.control(1, { ...choose, roundId: crypto.randomUUID() })
+  assert.equal(fixture.latestFlow(1).rematchChoice, undefined)
+  fixture.match.control(1, choose)
+  assert.equal(fixture.match.snapshot().step, 'result')
+  assert.equal(fixture.latestFlow(1).rematchChoice, 'again')
+  fixture.match.control(1, { ...choose, choice: 'rescan' })
+  assert.equal(fixture.match.snapshot().players[1].rematchChoice, 'again')
+  fixture.match.control(2, choose)
+  assert.equal(fixture.match.snapshot().step, 'battle')
+  assert.notEqual(fixture.match.snapshot().roundId, roundId)
+  assert.equal(fixture.match.snapshot().result, null)
+  assert.equal(fixture.match.snapshot().players[1].model, model)
+  assert.equal(fixture.match.snapshot().players[2].model, model)
+  assert.equal(fixture.calls.builds, 2)
+  assert.equal(fixture.latestFlow(1).rematchChoice, undefined)
+  assert.equal(fixture.latestFlow(1).winner, undefined)
+  fixture.match.control(1, choose)
+  assert.equal(fixture.match.snapshot().players[1].rematchChoice, undefined)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const pauses: boolean[] = []
+  fixture.match.attachBattle({ setPaused: (value) => pauses.push(value), setInput: () => {}, triggerAttack: () => true })
+  assert.equal(fixture.latestFlow(1).resumeSeconds, 3)
+  for (let i = 0; i < 3; i += 1) t.mock.timers.tick(1000)
+  assert.equal(pauses.at(-1), false)
+})
+
+test('引き分けでも再戦でき、切断後の選択を保持して基準姿勢の再取得を待つ', async (t) => {
+  const fixture = setup(t), roundId = await finishMatch(fixture, 'draw')
+  fixture.match.control(1, { type: 'rematch-choice', roundId, choice: 'again' })
+  fixture.match.disconnected(1)
+  fixture.match.control(2, { type: 'rematch-choice', roundId, choice: 'again' })
+  assert.equal(fixture.match.snapshot().step, 'result')
+  fixture.match.connected(1)
+  assert.equal(fixture.latestFlow(1).rematchChoice, 'again')
+  assert.equal(fixture.match.snapshot().step, 'result')
+  fixture.match.control(1, { type: 'sensor-ready' })
+  assert.equal(fixture.match.snapshot().step, 'battle')
+})
+
+for (const otherChoice of ['again', 'rescan'] as const) {
+  test(`撮り直しを選んだ側だけ撮影へ戻す（相手は${otherChoice}）`, async (t) => {
+    const fixture = setup(t), roundId = await finishMatch(fixture)
+    fixture.match.control(1, { type: 'rematch-choice', roundId, choice: 'rescan' })
+    fixture.match.control(2, { type: 'rematch-choice', roundId, choice: otherChoice })
+    assert.equal(fixture.match.snapshot().step, 'scan')
+    assert.equal(fixture.match.snapshot().players[1].model, undefined)
+    assert.equal(fixture.match.snapshot().players[1].look, undefined)
+    assert.equal(fixture.latestFlow(1).phase, 'capture')
+    assert.equal(fixture.latestFlow(1).scanId, undefined)
+    assert.equal(fixture.latestFlow(2).phase, otherChoice === 'again' ? 'waiting' : 'capture')
+    for (const slot of (otherChoice === 'again' ? [1] : [1, 2]) as PlayerSlot[]) {
+      const scanId = await fixture.scan(slot)
+      fixture.match.control(slot, { type: 'scan-confirm', scanId, revisions: [0, 0, 0, 0] }); await flush()
+    }
+    assert.equal(fixture.match.snapshot().step, 'battle')
+    assert.equal(fixture.calls.builds, otherChoice === 'again' ? 3 : 4)
+  })
+}
+
 test('空の正面Maskは修正でき、成功後に残る3方向を生成する', async (t) => {
   const fixture = setup(t); fixture.emptyFront(true)
   const scanId = await fixture.scan(1)

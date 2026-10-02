@@ -1,5 +1,5 @@
 import { SCAN_DIRECTIONS, assignScanDirections, type AssetManifest, type ControlMessage, type PlayerSlot,
-  type ScanDirection, type SelectionStroke } from '@gikcamp/protocol'
+  type ScanDirection, type SelectionStroke, type RematchChoice } from '@gikcamp/protocol'
 import type { ScanProcessor } from '../../features/analyze/scanProcessor'
 import type { SilhouetteMask } from '../../features/analyze/reconstruction/types'
 import type { BattleFighterModel } from '../../features/battle/game/fighterPlacement'
@@ -14,7 +14,7 @@ type Frame = { photoId: string; blob?: Blob; frameId?: number; mask?: Silhouette
   strokes: SelectionStroke[]; revision: number; deliveredRevision: number; metadata?: MaskReady }
 type Scan = { id: string; frames: Record<ScanDirection, Frame>; phase: 'receiving' | 'processing' | 'review' | 'building' | 'done'; busy: boolean }
 export type HostPlayer = { connected: boolean; sensorReady: boolean; ready: boolean; status: ScanStatus;
-  message: string; progress: number; look?: ScanneeLook; model?: BattleFighterModel }
+  message: string; progress: number; look?: ScanneeLook; model?: BattleFighterModel; rematchChoice?: RematchChoice }
 export type HostMatchSnapshot = { step: 'lobby' | 'scan' | 'battle' | 'result'; roundId: string;
   players: Record<PlayerSlot, HostPlayer>; paused: boolean; resumeSeconds: number; result: BattleResult | null }
 type Transport = { sendControl: (slot: PlayerSlot, message: ControlMessage) => void;
@@ -81,7 +81,12 @@ export class HostMatch {
     if (message.type === 'sensor-ready') {
       player.sensorReady = true; player.ready = true
       if (this.state.step === 'lobby' && this.allReady()) this.state.step = 'scan'
-      this.tryStartBattle(); this.tryResume(); this.publish(); return
+      this.tryRematch(); this.tryStartBattle(); this.tryResume(); this.publish(); return
+    }
+    if (message.type === 'rematch-choice') {
+      if (this.state.step !== 'result' || message.roundId !== this.state.roundId || !player.connected || !player.ready || player.rematchChoice) return
+      player.rematchChoice = message.choice
+      this.tryRematch(); this.publish(); return
     }
     if (this.state.step !== 'scan' || !player.ready) return
     if (message.type === 'scan-start') {
@@ -192,6 +197,19 @@ export class HostMatch {
   }
   dispose() { this.disposed = true; clearTimeout(this.resumeTimer); this.processor.dispose() }
   private allReady() { return this.state.players[1].connected && this.state.players[1].ready && this.state.players[2].connected && this.state.players[2].ready }
+  private tryRematch() {
+    if (this.state.step !== 'result' || !this.allReady() || !this.state.players[1].rematchChoice || !this.state.players[2].rematchChoice) return
+    this.pause(); this.battle = null
+    for (const slot of [1, 2] as const) {
+      const player = this.state.players[slot]
+      this.clearScan(slot)
+      if (player.rematchChoice === 'rescan') { delete player.model; delete player.look }
+      player.status = player.model ? 'done' : 'capturing'; player.message = ''; player.progress = 0
+      delete player.rematchChoice
+    }
+    this.state.roundId = crypto.randomUUID(); this.state.result = null; this.state.step = 'scan'
+    this.tryStartBattle()
+  }
   private current(slot: PlayerSlot, scan: Scan) { return !this.disposed && this.scans[slot] === scan }
   private clearScan(slot: PlayerSlot) {
     const scan = this.scans[slot]
@@ -294,7 +312,7 @@ export class HostMatch {
     if (player.ready) {
       if (this.state.step === 'battle') phase = 'battle'
       else if (this.state.step === 'result') phase = 'result'
-      else if (this.state.step === 'scan') phase = !scan ? 'capture' : scan.phase === 'receiving' ? 'capture' :
+      else if (this.state.step === 'scan') phase = player.model ? 'waiting' : !scan ? 'capture' : scan.phase === 'receiving' ? 'capture' :
         scan.busy ? 'processing' : scan.phase === 'review' ? 'review' : 'waiting'
     }
     const message: FlowState = { type: 'flow-state', roundId: this.state.roundId, phase,
@@ -302,6 +320,7 @@ export class HostMatch {
     // PeerJSのバイナリ変換でundefinedがnullになるため、未設定の任意項目は含めない。
     if (scan) message.scanId = scan.id
     if (this.state.result) message.winner = this.state.result.winner === 'draw' ? 'draw' : this.state.result.winner === 'p1' ? 1 : 2
+    if (player.rematchChoice) message.rematchChoice = player.rematchChoice
     return message
   }
   private publish(sendState = true) {

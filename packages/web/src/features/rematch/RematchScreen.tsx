@@ -10,13 +10,14 @@ import cameraIcon from '../../../../../docs/design/assets/icons/camera.svg?raw'
 import sparkleUrl from '../../../../../docs/design/assets/sparkle.svg'
 import './rematch.css'
 
-/** 試合のあとの選択。again：同じコマでもう一度 / rescan：スキャンからやり直す */
-export type RematchChoice = 'again' | 'rescan'
+import type { RematchChoice } from '@gikcamp/protocol'
+export type { RematchChoice } from '@gikcamp/protocol'
 
 type Props = {
   player: PlayerId
   // じぶんのコマの見た目（「このまま」のボタンに出す）
-  look: ScanneeLook
+  look?: ScanneeLook
+  initialChoice?: RematchChoice
   // 選んだときに呼ぶ。PC への送信は呼び出し側で行う
   onChoose?: (choice: RematchChoice) => void
 }
@@ -26,10 +27,10 @@ type Props = {
  * 選んだら相手待ち（OK! あいてを まってね）。一度選んだら変えられない。
  * 見本：docs/design/screens/phone-05-result.html
  */
-export function RematchScreen({ player, look, onChoose }: Props) {
-  const [choice, setChoice] = useState<RematchChoice | null>(null)
+export function RematchScreen({ player, look, initialChoice, onChoose }: Props) {
+  const [choice, setChoice] = useState<RematchChoice | null>(initialChoice ?? null)
   // 再描画を待たずに弾くための印。同じフレームで2つのボタンが押されても1回だけ送る
-  const chosenRef = useRef(false)
+  const chosenRef = useRef(!!initialChoice)
 
   const choose = (next: RematchChoice) => {
     if (chosenRef.current) return
@@ -55,7 +56,7 @@ export function RematchScreen({ player, look, onChoose }: Props) {
           onClick={() => choose('again')}
         >
           <div className="rematch__art rematch__art--again">
-            <Scannee look={look} eyesUrl={eyesHappyUrl} className="rematch__scannee" />
+            {look && <Scannee look={look} eyesUrl={eyesHappyUrl} className="rematch__scannee" />}
             <div className="rematch__badge">
               <Svg markup={againIcon} className="rematch__badge-icon" />
             </div>

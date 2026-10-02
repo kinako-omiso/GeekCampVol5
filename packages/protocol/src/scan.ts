@@ -12,6 +12,8 @@ export const selectionStrokeSchema = z.object({
 })
 export type SelectionStroke = z.infer<typeof selectionStrokeSchema>
 const strokes = z.array(selectionStrokeSchema).min(1).max(256)
+export const rematchChoiceSchema = z.enum(['again', 'rescan'])
+export type RematchChoice = z.infer<typeof rematchChoiceSchema>
 export const maskRevisionsSchema = z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative(),
   z.number().int().nonnegative(), z.number().int().nonnegative()])
 
@@ -19,6 +21,7 @@ export const scanControlSchemas = [
   z.object({ type: z.literal('sensor-enabled') }),
   z.object({ type: z.literal('sensor-ready') }),
   z.object({ type: z.literal('sensor-reset') }),
+  z.object({ type: z.literal('rematch-choice'), roundId: z.string().uuid(), choice: rematchChoiceSchema }),
   z.object({ type: z.literal('scan-start'), scanId: z.string().uuid(),
     photoIds: z.array(z.string().uuid()).length(4).refine((ids) => new Set(ids).size === 4),
     frontPhotoId: z.string().uuid(), strokes,
@@ -38,6 +41,7 @@ export const scanControlSchemas = [
     phase: z.enum(['join', 'capture', 'processing', 'review', 'waiting', 'battle', 'result']),
     scanId: z.string().uuid().optional(), paused: z.boolean(), resumeSeconds: z.number().int().min(0).max(3),
     message: z.string(), winner: z.union([z.literal(1), z.literal(2), z.literal('draw')]).optional(),
+    rematchChoice: rematchChoiceSchema.optional(),
   }),
   z.object({ type: z.literal('feedback'), effect: z.enum(['hit', 'damage', 'defeat']) }),
 ] as const
