@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { GeometryResult } from '@gikcamp/geometry-wasm'
-import { clipCollisionHull, createDefaultPlacement, prepareFighterModel } from '../src/features/battle/game/fighterPlacement.ts'
+import { reconstructQuickScan } from '../src/features/analyze/reconstruction/quickScan.ts'
+import { createSampleMask } from '../src/features/battle/game/sampleMask.ts'
+import { clipCollisionHull, createDefaultPlacement, getModelBounds, prepareFighterModel } from '../src/features/battle/game/fighterPlacement.ts'
 
 // 下端に1点、上端に3点を持つ四面体。単に下の頂点を削除すると平面になってしまう。
 const positions = new Float32Array([0, -0.4, 0, -0.5, 0.6, -0.5, 0.5, 0.6, -0.5, 0, 0.6, 0.5])
@@ -20,6 +22,7 @@ test('自動配置は写真の正面と生成モデル下端を使い、最下�
   const placement = createDefaultPlacement(reconstruction, 90)
   close(placement.yaw, -Math.PI / 2)
   assert.equal(placement.bottomY, positions[1])
+  close(placement.scale, 1)
   const prepared = prepareFighterModel({ reconstruction, geometry, placement })
   const bottom = prepared.collisionPositions.filter((_, index) => index % 3 === 1)
   close(Math.min(...bottom), 0)
@@ -50,7 +53,7 @@ test('元の重心・表示・衝突へ同じ補正を適用し、入力と能�
   const snapshot = { positions: positions.slice(), normals: normals.slice(), indices: indices.slice(),
     hull: geometry.hullPositions.slice(), center: [...geometry.centerOfMass], stats: { ...geometry.stats } }
   const prepared = prepareFighterModel({ reconstruction, geometry,
-    placement: { yaw: Math.PI / 2, offsetX: 0.2, offsetZ: -0.3, bottomY: 0 } })
+    placement: { yaw: Math.PI / 2, offsetX: 0.2, offsetZ: -0.3, bottomY: 0, scale: 1 } })
   close(prepared.centerOfMass[0], 0.075)
   close(prepared.centerOfMass[1], 0.35)
   close(prepared.centerOfMass[2], -0.3)
@@ -69,7 +72,7 @@ test('元の重心・表示・衝突へ同じ補正を適用し、入力と能�
 test('geometry-wasmの正規化座標を表示座標へ合わせ、縮尺を維持する', () => {
   const scaled = { ...reconstruction, positions: positions.map((value) => value * 2) }
   const prepared = prepareFighterModel({ reconstruction: scaled, geometry,
-    placement: { yaw: 0, offsetX: 0, offsetZ: 0, bottomY: 0 } })
+    placement: { yaw: 0, offsetX: 0, offsetZ: 0, bottomY: 0, scale: 1 } })
   close(prepared.centerOfMass[1], 0.7)
   close(prepared.centerOfMass[2], -0.25)
   close(prepared.collisionPositions[1], 1.2)
@@ -77,7 +80,38 @@ test('geometry-wasmの正規化座標を表示座標へ合わせ、縮尺を維�
 
 test('不正な補正や衝突形状がなくなる配置は確定できない', () => {
   const placement = createDefaultPlacement(reconstruction)
-  for (const update of [{ yaw: Number.NaN }, { offsetX: Infinity }, { offsetZ: 1e308 }, { bottomY: -2 }, { bottomY: 2 }, { bottomY: positions[4] }]) {
+  for (const update of [{ yaw: Number.NaN }, { offsetX: Infinity }, { offsetZ: 1e308 }, { bottomY: -2 }, { bottomY: 2 }, { bottomY: positions[4] }, { scale: 0 }, { scale: -1 }, { scale: Infinity }, { scale: Number.NaN }]) {
     assert.throws(() => prepareFighterModel({ reconstruction, geometry, placement: { ...placement, ...update } }))
   }
+})
+
+test('小さい生成モデルはサンプルの高さへ合わせ、表示・衝突・重心へ同じ倍率を適用する', () => {
+  const small = { ...reconstruction, positions: positions.map((value) => value * 0.5) }
+  const placement = createDefaultPlacement(small)
+  const sampleHeight = getModelBounds(reconstructQuickScan(createSampleMask()).positions).height
+  close(placement.scale, sampleHeight / 0.5)
+  const prepared = prepareFighterModel({ reconstruction: small, geometry, placement })
+  close(getModelBounds(prepared.reconstruction.positions).height, sampleHeight)
+  close(getModelBounds(prepared.collisionPositions).height, sampleHeight)
+  close(prepared.centerOfMass[1], 0.75)
+  close(getModelBounds(small.positions).height, 0.5)
+  assert.deepEqual(geometry.stats, { hp: 100, attack: 1, reach: 1, turnSpeed: 200, moveSpeed: 1 })
+})
+
+test('手動倍率で表示・衝突・重心をそろえ、接地面より下だけ衝突から外す', () => {
+  const placement = { ...createDefaultPlacement(reconstruction), bottomY: 0, scale: 1.5 }
+  const prepared = prepareFighterModel({ reconstruction, geometry, placement })
+  close(prepared.reconstruction.positions[1], -0.6)
+  close(prepared.reconstruction.positions[4], 0.9)
+  close(prepared.centerOfMass[1], 0.525)
+  const collisionY = prepared.collisionPositions.filter((_, index) => index % 3 === 1)
+  close(Math.min(...collisionY), 0)
+  close(Math.max(...collisionY), 0.9)
+  close(positions[1], -0.4)
+  close(geometry.centerOfMass[1], 0.35)
+})
+
+test('高さのないモデルは初期倍率を決められない', () => {
+  const flat = { ...reconstruction, positions: positions.map((value, index) => index % 3 === 1 ? 0 : value) }
+  assert.throws(() => createDefaultPlacement(flat))
 })

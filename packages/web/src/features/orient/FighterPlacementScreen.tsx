@@ -4,6 +4,10 @@ import type { BattleFighterModel, FighterPlacement } from '../battle/game/fighte
 import type { mountFighterPlacementPreview } from './fighterPlacementPreview'
 import './fighterPlacement.css'
 
+const SCALE_STEP = 1.1
+const MIN_SCALE_RATIO = 0.5
+const MAX_SCALE_RATIO = 2
+
 type Props = {
   model: Omit<BattleFighterModel, 'placement'>
   placement: FighterPlacement
@@ -46,11 +50,25 @@ export function FighterPlacementScreen({ model, placement, defaultPlacement, onC
 
   const numberValue = (value: number) => Number.isFinite(value) ? value : ''
   const update = (key: keyof FighterPlacement, value: number) => onChange({ ...placement, [key]: value })
+  const minScale = defaultPlacement.scale * MIN_SCALE_RATIO
+  const maxScale = defaultPlacement.scale * MAX_SCALE_RATIO
+  const validScale = Number.isFinite(placement.scale) && placement.scale > 0
+  const changeScale = (factor: number) => onChange({ ...placement,
+    scale: Math.max(minScale, Math.min(maxScale, placement.scale * factor)) })
   return <section className="fighter-placement" aria-label="モデルの配置調整">
-    <h2>02 · 正面と接地面を確認</h2>
+    <h2>02 · 正面・大きさ・接地面を確認</h2>
     <p>青いマーカーが攻撃方向、水色の面が接地面、黄色の点が生成時の重心です。下端より下の形は残し、衝突判定からだけ除外します。</p>
     <canvas ref={canvasRef} aria-label="配置と接地面の3Dプレビュー" />
-    <p>ドラッグとホイールは閲覧用のカメラ操作です。対戦に使う配置は下の入力で調整します。</p>
+    <p>ドラッグとホイールは閲覧用のカメラ操作です。対戦中の大きさは下のボタンで調整します。</p>
+    <div className="fighter-placement__scale">
+      <strong>モデルの大きさ</strong>
+      <p>倍率 {validScale ? placement.scale.toFixed(2) : '不正'}倍 / 高さ {validScale ? (bounds.height * placement.scale).toFixed(2) : '不正'}（サンプル {Number.isFinite(defaultPlacement.scale) ? (bounds.height * defaultPlacement.scale).toFixed(2) : '不正'}）</p>
+      <div className="fighter-placement__scale-actions">
+        <button type="button" disabled={!validScale || placement.scale <= minScale} onClick={() => changeScale(1 / SCALE_STEP)}>縮小</button>
+        <button type="button" disabled={!validScale || placement.scale >= maxScale} onClick={() => changeScale(SCALE_STEP)}>拡大</button>
+        <button type="button" onClick={() => onChange({ ...placement, scale: defaultPlacement.scale })}>サンプルの高さに戻す</button>
+      </div>
+    </div>
     <div className="fighter-placement__controls">
       <label>正面補正（°）<input type="number" step="1" value={numberValue(placement.yaw * 180 / Math.PI)} onChange={(event) => update('yaw', event.currentTarget.valueAsNumber * Math.PI / 180)} />
         <input aria-label="正面補正スライダー" type="range" min="-360" max="360" step="1" value={Number.isFinite(placement.yaw) ? placement.yaw * 180 / Math.PI : 0} onChange={(event) => update('yaw', event.currentTarget.valueAsNumber * Math.PI / 180)} /></label>
