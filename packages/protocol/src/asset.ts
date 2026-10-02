@@ -4,6 +4,51 @@ import { z } from 'zod'
 export const ASSET_CHUNK_SIZE = 12 * 1024
 export const MAX_ASSET_BYTES = 5 * 1024 * 1024
 
+// スマホで撮る写真の向き。撮影もこの順番で行う
+export const CAPTURE_VIEWS = ['front', 'right', 'back', 'left'] as const
+export const MAX_CAPTURE_SELECTION_STROKES = 32
+export const MAX_CAPTURE_SELECTION_POINTS = 256
+
+export const captureViewSchema = z.enum(CAPTURE_VIEWS)
+
+export type CaptureView = z.infer<typeof captureViewSchema>
+
+// 写真の幅・高さを1としたときの位置（0〜1）。PCで縮小しても同じ位置を指す
+export const captureSelectionPointSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+})
+
+// add は対象（前景）、remove は背景の指定
+export const captureSelectionStrokeSchema = z.object({
+  mode: z.union([
+    z.literal('add'),
+    z.literal('remove'),
+  ]),
+  points: z.array(captureSelectionPointSchema)
+    .min(1)
+    .max(MAX_CAPTURE_SELECTION_POINTS),
+})
+
+export type CaptureSelectionStroke = z.infer<
+  typeof captureSelectionStrokeSchema
+>
+
+// 4方向の写真を1組として送るための情報。範囲指定は正面の写真にだけ付ける
+export const captureInfoSchema = z.object({
+  setId: z.string().min(1),
+  view: captureViewSchema,
+  selection: z.array(captureSelectionStrokeSchema)
+    .min(1)
+    .max(MAX_CAPTURE_SELECTION_STROKES)
+    .optional(),
+}).refine(
+  (capture) => capture.view === 'front' || capture.selection === undefined,
+  { message: '範囲指定は正面の写真にだけ付けられます' },
+)
+
+export type CaptureInfo = z.infer<typeof captureInfoSchema>
+
 export const assetManifestSchema = z.object({
   transferId: z.string().min(1),
   kind: z.union([
@@ -20,6 +65,8 @@ export const assetManifestSchema = z.object({
   chunkCount: z.number().int().positive(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  // スマホの撮影画面から送る写真だけに付く
+  capture: captureInfoSchema.optional(),
 })
 
 export type AssetManifest = z.infer<

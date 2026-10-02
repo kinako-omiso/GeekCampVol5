@@ -2,11 +2,17 @@ import Peer from 'peerjs'
 import type { DataConnection } from 'peerjs'
 import {
   ASSET_CHUNK_SIZE,
+  CAPTURE_VIEWS,
   MAX_ASSET_BYTES,
+  assetManifestSchema,
   assetMessageSchema,
+  captureInfoSchema,
   controlMessageSchema,
   type AssetManifest,
   type AssetMessage,
+  type CaptureInfo,
+  type CaptureSelectionStroke,
+  type CaptureView,
   type ControlMessage,
   type PairingMetadata,
   type PlayerSlot,
@@ -22,6 +28,13 @@ type ControllerPeerSessionEvents = {
   rejected: (reason: string) => void
   disconnected: () => void
   error: (error: Error) => void
+}
+
+export type CaptureShot = {
+  view: CaptureView
+  photo: Blob
+  width: number
+  height: number
 }
 
 type PendingWaiter = {
@@ -84,10 +97,51 @@ export class ControllerPeerSession {
     this.motionSequence += 1
   }
 
+  // 4方向の写真を1枚ずつ順番に送る。範囲指定は正面の写真の転送情報に付ける
+  async sendCapture(
+    shots: ReadonlyArray<CaptureShot>,
+    selection: ReadonlyArray<CaptureSelectionStroke>,
+    onProgress: (ratio: number) => void,
+  ): Promise<void> {
+    const views = shots.map((shot) => shot.view)
+    if (
+      views.length !== CAPTURE_VIEWS.length ||
+      CAPTURE_VIEWS.some((view) => !views.includes(view))
+    ) {
+      throw new Error('4方向の写真がそろっていません')
+    }
+    if (!selection.some((stroke) => stroke.mode === 'add')) {
+      throw new Error('正面の写真で対象を指定してください')
+    }
+
+    // 写真を読み込む前に、範囲指定が正しいかを一度だけ確かめる
+    const setId = crypto.randomUUID()
+    const frontCapture: CaptureInfo = {
+      setId,
+      view: 'front',
+      selection: [...selection],
+    }
+    if (!captureInfoSchema.safeParse(frontCapture).success) {
+      throw new Error('範囲指定の内容が不正です')
+    }
+
+    for (const [index, shot] of shots.entries()) {
+      await this.sendPhoto(
+        shot.photo,
+        { width: shot.width, height: shot.height },
+        (ratio) => onProgress((index + ratio) / shots.length),
+        shot.view === 'front'
+          ? frontCapture
+          : { setId, view: shot.view },
+      )
+    }
+  }
+
   async sendPhoto(
     photo: Blob,
     dimensions: { width: number; height: number },
     onProgress: (ratio: number) => void,
+    capture?: CaptureInfo,
   ): Promise<void> {
     if (this.sendingAsset) {
       throw new Error('別の写真を送信中です')
@@ -118,6 +172,10 @@ export class ControllerPeerSession {
         chunkCount,
         width: dimensions.width,
         height: dimensions.height,
+        ...(capture === undefined ? {} : { capture }),
+      }
+      if (!assetManifestSchema.safeParse(manifest).success) {
+        throw new Error('写真の転送情報が不正です')
       }
 
       onProgress(0)
