@@ -3,7 +3,6 @@ import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight'
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight'
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color'
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector'
-import { Material } from '@babylonjs/core/Materials/material'
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
 import { Mesh } from '@babylonjs/core/Meshes/mesh'
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder'
@@ -22,6 +21,12 @@ import { calculateKnockbackImpulse, TEST_ATTACK_MULTIPLIERS, TEST_ATTACK_VALUE }
 import { stepMovement, type MotionInput, type MovementState } from './movement'
 import { hasJustLeftRing, RING_RADIUS } from './ringExit'
 import { createSampleMask } from './sampleMask'
+import { prepareFighterModel, type BattleFighterModel } from './fighterPlacement'
+import { createFighterMesh } from './fighterMesh'
+
+export type PhysicsBattleOptions = {
+  fighters?: Partial<Record<PlayerId, BattleFighterModel>>
+}
 
 const FIGHTER = 1
 const FLOOR_REGION = 2
@@ -64,8 +69,10 @@ export type PhysicsBattle = {
   dispose: () => void
 }
 
-function createFighter(scene: Scene, player: PlayerId, reconstruction: ReturnType<typeof reconstructQuickScan>): Fighter {
-  const center = getVolumeCentroid(reconstruction)
+function createFighter(scene: Scene, player: PlayerId, sample: ReturnType<typeof reconstructQuickScan>, model?: BattleFighterModel): Fighter {
+  const prepared = model ? prepareFighterModel(model) : undefined
+  const reconstruction = prepared?.reconstruction ?? sample
+  const center = prepared ? { x: prepared.centerOfMass[0], y: prepared.centerOfMass[1], z: prepared.centerOfMass[2] } : getVolumeCentroid(reconstruction)
   const centered = new Float32Array(reconstruction.positions.length)
   let bottom = Infinity
   for (let index = 0; index < centered.length; index += 3) {
@@ -75,21 +82,21 @@ function createFighter(scene: Scene, player: PlayerId, reconstruction: ReturnTyp
     bottom = Math.min(bottom, centered[index + 1])
   }
 
-  const mesh = new Mesh(player + '-fighter', scene)
-  const vertexData = new VertexData()
-  vertexData.positions = centered
-  vertexData.indices = reconstruction.indices
-  if (reconstruction.normals) vertexData.normals = reconstruction.normals
-  vertexData.applyToMesh(mesh)
+  const mesh = createFighterMesh(scene, player + '-fighter', {
+    positions: centered, indices: reconstruction.indices, normals: reconstruction.normals,
+  })
   const yaw = player === 'p1' ? Math.PI / 2 : -Math.PI / 2
   mesh.position.set(player === 'p1' ? -3 : 3, -bottom + 0.04, 0)
+  if (prepared && center) {
+    // 剛体原点は生成時の重心。足元基準の開始地点は左右3.0のままにする。
+    mesh.position.addInPlace(new Vector3(
+      Math.cos(yaw) * center.x + Math.sin(yaw) * center.z, 0,
+      -Math.sin(yaw) * center.x + Math.cos(yaw) * center.z,
+    ))
+    bottom = -center.y
+    mesh.position.y = -bottom + 0.04
+  }
   mesh.rotationQuaternion = Quaternion.RotationYawPitchRoll(yaw, 0, 0)
-
-  const bodyMaterial = new StandardMaterial(player + '-body', scene)
-  bodyMaterial.diffuseColor = Color3.FromHexString('#dddddd')
-  bodyMaterial.specularColor = new Color3(0.12, 0.12, 0.12)
-  bodyMaterial.sideOrientation = Material.ClockWiseSideOrientation
-  mesh.material = bodyMaterial
 
   const ringMaterial = new StandardMaterial(player + '-ring-material', scene)
   ringMaterial.diffuseColor = Color3.FromHexString(players[player].main)
@@ -97,24 +104,40 @@ function createFighter(scene: Scene, player: PlayerId, reconstruction: ReturnTyp
   const ring = MeshBuilder.CreateTorus(player + '-ring', { diameter: 1.25, thickness: 0.055, tessellation: 48 }, scene)
   ring.parent = mesh
   ring.position.y = bottom + 0.03
+  if (prepared && center) { ring.position.x = -center.x; ring.position.z = -center.z }
   ring.material = ringMaterial
   const front = MeshBuilder.CreateBox(player + '-front', { width: 0.2, height: 0.035, depth: 0.28 }, scene)
   front.parent = mesh
   front.position.set(0, bottom + 0.06, 0.55)
+  if (prepared && center) { front.position.x = -center.x; front.position.z -= center.z }
   front.material = ringMaterial
 
   // 凸包は Havok の衝突用形状。能力値を出す C++ の形状解析には使わない。
+  let collisionMesh: Mesh | undefined
+  if (prepared && center) {
+    collisionMesh = new Mesh(player + '-clipped-collision', scene)
+    const collisionData = new VertexData()
+    collisionData.positions = prepared.collisionPositions.map((value, index) =>
+      value - [center.x, center.y, center.z][index % 3])
+    collisionData.applyToMesh(collisionMesh)
+    collisionMesh.setEnabled(false)
+  }
   const aggregate = new PhysicsAggregate(mesh, PhysicsShapeType.CONVEX_HULL, {
     mass: 1,
     friction: 0.65,
     restitution: 0.05,
+    ...(collisionMesh ? { mesh: collisionMesh, includeChildMeshes: false } : {}),
   }, scene)
+  // Havokは頂点をコピーするため、衝突用の非表示Meshは以降不要。
+  collisionMesh?.dispose()
   aggregate.shape.filterMembershipMask = FIGHTER
   aggregate.shape.filterCollideMask = FIGHTER | FLOOR_REGION
   aggregate.body.setMassProperties({
     mass: 1,
     inertia: new Vector3(0, 0.2, 0),
     inertiaOrientation: Quaternion.Identity(),
+    // 切断した凸包の重心へ変わらないよう、生成時の重心を明示する。
+    ...(prepared ? { centerOfMass: Vector3.Zero() } : {}),
   })
   aggregate.body.setLinearDamping(0.35)
   aggregate.body.setAngularDamping(4)
@@ -195,11 +218,12 @@ function finishAttackReturn(fighter: Fighter) {
   fighter.attack = null
 }
 
-/** #6 用の2体物理検証。React側は入力とイベント表示だけを担当する。 */
+/** #6 / #49 用の2体物理検証。React側は入力とイベント表示だけを担当する。 */
 export async function mountPhysicsBattle(
   canvas: HTMLCanvasElement,
   onEvent: (event: PhysicsBattleEvent) => void,
   signal?: AbortSignal,
+  options: PhysicsBattleOptions = {},
 ): Promise<PhysicsBattle> {
   const engine = createWebGL2Engine(canvas)
   const scene = new Scene(engine)
@@ -260,8 +284,8 @@ export async function mountPhysicsBattle(
 
     const reconstruction = reconstructQuickScan(createSampleMask())
     fighters = {
-      p1: createFighter(scene, 'p1', reconstruction),
-      p2: createFighter(scene, 'p2', reconstruction),
+      p1: createFighter(scene, 'p1', reconstruction, options.fighters?.p1),
+      p2: createFighter(scene, 'p2', reconstruction, options.fighters?.p2),
     }
     const activeFighters = fighters
     const firstBody = activeFighters.p1.aggregate.body
