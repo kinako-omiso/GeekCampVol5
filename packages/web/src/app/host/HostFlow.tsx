@@ -7,10 +7,13 @@ import type {
 } from '@gikcamp/protocol'
 import { HostStage } from '../../components/HostStage'
 import { ScanProgressScreen, type ScanStatus } from '../../features/analyze/ScanProgressScreen'
+import { judgeBattle, type BattleOutcome, type BattleSnapshot } from '../../features/battle/game/judge'
 import { BattleHud } from '../../features/battle/ui/BattleHud'
+import { FinishOverlay } from '../../features/battle/ui/FinishOverlay'
 import { EntranceScreen } from '../../features/entrance/EntranceScreen'
 import { LobbyScreen, type LobbyPlayerStatus } from '../../features/lobby/LobbyScreen'
 import { ResultScreen } from '../../features/result/ResultScreen'
+import { VersusScreen } from '../../features/versus/VersusScreen'
 import { HostPeerSession } from '../../lib/peer/hostPeerSession.ts'
 import { buildControllerUrl } from '../../lib/peer/pairing.ts'
 import { MOCK_SCANNEES } from './mock/mockScannees'
@@ -20,7 +23,7 @@ import eraserUrl from '../../../../../docs/design/assets/sample-scannee-eraser.s
 import '../../../../../docs/design/tokens.css'
 import './host.css'
 
-type Step = 'lobby' | 'scan' | 'entrance' | 'battle' | 'result'
+type Step = 'lobby' | 'scan' | 'entrance' | 'versus' | 'battle' | 'result'
 
 // モック：スキャンの進み方。解析は1人ずつなので、2P は 1P の解析が終わるまで待つ
 const MOCK_SCAN_STEPS: Record<PlayerId, ScanStatus>[] = [
@@ -39,6 +42,22 @@ const MOCK_STATS: Record<PlayerId, FighterStats> = {
 }
 const MOCK_HP: Record<PlayerId, number> = { p1: 72, p2: 38 }
 const MOCK_REMAINING_SECONDS = 24
+
+// モック：決着の場面。対戦の状態から judgeBattle で決着の理由と勝者を決める
+const MOCK_FINISHES: { label: string; snapshot: BattleSnapshot }[] = [
+  {
+    label: 'KO（1Pのかち）',
+    snapshot: { hp: { p1: MOCK_HP.p1, p2: 0 }, ringOut: { p1: false, p2: false }, remainingSeconds: MOCK_REMAINING_SECONDS },
+  },
+  {
+    label: 'おっこちた（2Pのかち）',
+    snapshot: { hp: MOCK_HP, ringOut: { p1: true, p2: false }, remainingSeconds: MOCK_REMAINING_SECONDS },
+  },
+  {
+    label: 'タイムアップ',
+    snapshot: { hp: MOCK_HP, ringOut: { p1: false, p2: false }, remainingSeconds: 0 },
+  },
+]
 
 // 送られてきた後（順番待ち・解析中・完成）だけコマの見た目がある
 function hasLook(status: ScanStatus) {
@@ -69,6 +88,8 @@ export function HostFlow() {
   const [step, setStep] = useState<Step>('lobby')
   const [scanStep, setScanStep] = useState(0)
   const [winner, setWinner] = useState<PlayerId>('p1')
+  // 決着したら対戦画面の上に演出を重ねる。null のあいだは対戦中
+  const [outcome, setOutcome] = useState<BattleOutcome | null>(null)
   const [controllerUrls, setControllerUrls] =
     useState<ControllerUrls | null>(null)
 
@@ -232,14 +253,26 @@ export function HostFlow() {
   const scanStatuses = MOCK_SCAN_STEPS[scanStep]
   const scanIsLast = scanStep === MOCK_SCAN_STEPS.length - 1
 
-  const finish = (player: PlayerId) => {
-    setWinner(player)
-    setStep('result')
-  }
-
   const restart = () => {
     setScanStep(0)
+    setOutcome(null)
     setStep('lobby')
+  }
+
+  const finish = (snapshot: BattleSnapshot) => {
+    setOutcome(judgeBattle(snapshot))
+  }
+
+  // 決着の演出が終わったら結果画面へ
+  const showResult = (finished: BattleOutcome) => {
+    setOutcome(null)
+    // 引き分けを出す画面（時間切れの山くらべ pc-09）はまだ無いので、いまはロビーへ戻す
+    if (finished.winner === null) {
+      restart()
+      return
+    }
+    setWinner(finished.winner)
+    setStep('result')
   }
 
   return (
@@ -278,6 +311,15 @@ export function HostFlow() {
             p1: { look: MOCK_SCANNEES.p1, stats: MOCK_STATS.p1 },
             p2: { look: MOCK_SCANNEES.p2, stats: MOCK_STATS.p2 },
           }}
+          onDone={() => setStep('versus')}
+        />
+      )}
+      {step === 'versus' && (
+        <VersusScreen
+          fighters={{
+            p1: { look: MOCK_SCANNEES.p1, stats: MOCK_STATS.p1 },
+            p2: { look: MOCK_SCANNEES.p2, stats: MOCK_STATS.p2 },
+          }}
           onDone={() => setStep('battle')}
         />
       )}
@@ -290,6 +332,14 @@ export function HostFlow() {
             }}
             remainingSeconds={MOCK_REMAINING_SECONDS}
           />
+          {outcome !== null && (
+            // 決着ごとに作り直して、演出を最初から流す
+            <FinishOverlay
+              key={`${outcome.reason}-${outcome.winner}`}
+              outcome={outcome}
+              onDone={() => showResult(outcome)}
+            />
+          )}
         </HostStage>
       )}
       {step === 'result' && <ResultScreen winner={winner} looks={MOCK_SCANNEES} />}
@@ -311,20 +361,22 @@ export function HostFlow() {
           </button>
         )}
         {step === 'entrance' && (
+          <button type="button" onClick={() => setStep('versus')}>
+            モック：とばす ▶
+          </button>
+        )}
+        {step === 'versus' && (
           <button type="button" onClick={() => setStep('battle')}>
             モック：とばす ▶
           </button>
         )}
-        {step === 'battle' && (
-          <>
-            <button type="button" onClick={() => finish('p1')}>
-              モック：1Pのかち ▶
+        {step === 'battle' &&
+          outcome === null &&
+          MOCK_FINISHES.map((mock) => (
+            <button key={mock.label} type="button" onClick={() => finish(mock.snapshot)}>
+              モック：{mock.label} ▶
             </button>
-            <button type="button" onClick={() => finish('p2')}>
-              モック：2Pのかち ▶
-            </button>
-          </>
-        )}
+          ))}
         {step === 'result' && (
           <button type="button" onClick={restart}>
             モック：ロビーへ ▶
