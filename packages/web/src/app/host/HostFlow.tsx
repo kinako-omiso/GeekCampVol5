@@ -13,6 +13,7 @@ import { FinishOverlay } from '../../features/battle/ui/FinishOverlay'
 import { EntranceScreen } from '../../features/entrance/EntranceScreen'
 import { LobbyScreen, type LobbyPlayerStatus } from '../../features/lobby/LobbyScreen'
 import { ResultScreen } from '../../features/result/ResultScreen'
+import { TimeUpScreen } from '../../features/timeup/TimeUpScreen'
 import { VersusScreen } from '../../features/versus/VersusScreen'
 import { HostPeerSession } from '../../lib/peer/hostPeerSession.ts'
 import { buildControllerUrl } from '../../lib/peer/pairing.ts'
@@ -23,7 +24,7 @@ import eraserUrl from '../../../../../docs/design/assets/sample-scannee-eraser.s
 import '../../../../../docs/design/tokens.css'
 import './host.css'
 
-type Step = 'lobby' | 'scan' | 'entrance' | 'versus' | 'battle' | 'result'
+type Step = 'lobby' | 'scan' | 'entrance' | 'versus' | 'battle' | 'timeUp' | 'result'
 
 // モック：スキャンの進み方。解析は1人ずつなので、2P は 1P の解析が終わるまで待つ
 const MOCK_SCAN_STEPS: Record<PlayerId, ScanStatus>[] = [
@@ -56,6 +57,10 @@ const MOCK_FINISHES: { label: string; snapshot: BattleSnapshot }[] = [
   {
     label: 'タイムアップ',
     snapshot: { hp: MOCK_HP, ringOut: { p1: false, p2: false }, remainingSeconds: 0 },
+  },
+  {
+    label: 'タイムアップ（ひきわけ）',
+    snapshot: { hp: { p1: 30, p2: 30 }, ringOut: { p1: false, p2: false }, remainingSeconds: 0 },
   },
 ]
 
@@ -90,6 +95,8 @@ export function HostFlow() {
   const [winner, setWinner] = useState<PlayerId>('p1')
   // 決着したら対戦画面の上に演出を重ねる。null のあいだは対戦中
   const [outcome, setOutcome] = useState<BattleOutcome | null>(null)
+  // 時間切れの山くらべに出す、決着したときの HP と勝者（null なら引き分け）
+  const [timeUp, setTimeUp] = useState<{ hp: Record<PlayerId, number>; winner: PlayerId | null } | null>(null)
   const [controllerUrls, setControllerUrls] =
     useState<ControllerUrls | null>(null)
 
@@ -256,24 +263,37 @@ export function HostFlow() {
   const restart = () => {
     setScanStep(0)
     setOutcome(null)
+    setTimeUp(null)
     setStep('lobby')
   }
 
   const finish = (snapshot: BattleSnapshot) => {
-    setOutcome(judgeBattle(snapshot))
+    const finished = judgeBattle(snapshot)
+    setOutcome(finished)
+    setTimeUp(finished?.reason === 'timeUp' ? { hp: snapshot.hp, winner: finished.winner } : null)
   }
 
-  // 決着の演出が終わったら結果画面へ
-  const showResult = (finished: BattleOutcome) => {
+  const showResult = (player: PlayerId) => {
+    setWinner(player)
+    setStep('result')
+  }
+
+  // 決着の演出が終わったら、時間切れは山くらべへ、それ以外は結果画面へ
+  const afterFinish = (finished: BattleOutcome) => {
     setOutcome(null)
-    // 引き分けを出す画面（時間切れの山くらべ pc-09）はまだ無いので、いまはロビーへ戻す
+    if (finished.reason === 'timeUp') {
+      setStep('timeUp')
+      return
+    }
+    // 同時に両方が負けた引き分けを出す画面は無いので、いまはロビーへ戻す
     if (finished.winner === null) {
       restart()
       return
     }
-    setWinner(finished.winner)
-    setStep('result')
+    showResult(finished.winner)
   }
+
+  const timeUpWinner = timeUp?.winner ?? null
 
   return (
     <>
@@ -337,10 +357,21 @@ export function HostFlow() {
             <FinishOverlay
               key={`${outcome.reason}-${outcome.winner}`}
               outcome={outcome}
-              onDone={() => showResult(outcome)}
+              onDone={() => afterFinish(outcome)}
             />
           )}
         </HostStage>
+      )}
+      {step === 'timeUp' && timeUp !== null && (
+        <TimeUpScreen
+          fighters={{
+            p1: { look: MOCK_SCANNEES.p1, hp: timeUp.hp.p1 },
+            p2: { look: MOCK_SCANNEES.p2, hp: timeUp.hp.p2 },
+          }}
+          winner={timeUpWinner}
+          // 引き分けはこの画面のままスマホで次を選ぶ（再戦の2択は #45）
+          onDone={timeUpWinner === null ? undefined : () => showResult(timeUpWinner)}
+        />
       )}
       {step === 'result' && <ResultScreen winner={winner} looks={MOCK_SCANNEES} />}
 
@@ -377,7 +408,7 @@ export function HostFlow() {
               モック：{mock.label} ▶
             </button>
           ))}
-        {step === 'result' && (
+        {(step === 'result' || step === 'timeUp') && (
           <button type="button" onClick={restart}>
             モック：ロビーへ ▶
           </button>
