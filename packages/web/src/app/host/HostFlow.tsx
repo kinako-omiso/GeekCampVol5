@@ -7,10 +7,14 @@ import type {
 } from '@gikcamp/protocol'
 import { HostStage } from '../../components/HostStage'
 import { ScanProgressScreen, type ScanStatus } from '../../features/analyze/ScanProgressScreen'
+import { judgeBattle, type BattleOutcome, type BattleSnapshot } from '../../features/battle/game/judge'
 import { BattleHud } from '../../features/battle/ui/BattleHud'
+import { FinishOverlay } from '../../features/battle/ui/FinishOverlay'
 import { EntranceScreen } from '../../features/entrance/EntranceScreen'
 import { LobbyScreen, type LobbyPlayerStatus } from '../../features/lobby/LobbyScreen'
 import { ResultScreen } from '../../features/result/ResultScreen'
+import { TimeUpScreen } from '../../features/timeup/TimeUpScreen'
+import { VersusScreen } from '../../features/versus/VersusScreen'
 import { HostPeerSession } from '../../lib/peer/hostPeerSession.ts'
 import { buildControllerUrl } from '../../lib/peer/pairing.ts'
 import { MOCK_SCANNEES } from './mock/mockScannees'
@@ -20,7 +24,7 @@ import eraserUrl from '../../../../../docs/design/assets/sample-scannee-eraser.s
 import '../../../../../docs/design/tokens.css'
 import './host.css'
 
-type Step = 'lobby' | 'scan' | 'entrance' | 'battle' | 'result'
+type Step = 'lobby' | 'scan' | 'entrance' | 'versus' | 'battle' | 'timeUp' | 'result'
 
 // モック：スキャンの進み方。解析は1人ずつなので、2P は 1P の解析が終わるまで待つ
 const MOCK_SCAN_STEPS: Record<PlayerId, ScanStatus>[] = [
@@ -39,6 +43,26 @@ const MOCK_STATS: Record<PlayerId, FighterStats> = {
 }
 const MOCK_HP: Record<PlayerId, number> = { p1: 72, p2: 38 }
 const MOCK_REMAINING_SECONDS = 24
+
+// モック：決着の場面。対戦の状態から judgeBattle で決着の理由と勝者を決める
+const MOCK_FINISHES: { label: string; snapshot: BattleSnapshot }[] = [
+  {
+    label: 'KO（1Pのかち）',
+    snapshot: { hp: { p1: MOCK_HP.p1, p2: 0 }, ringOut: { p1: false, p2: false }, remainingSeconds: MOCK_REMAINING_SECONDS },
+  },
+  {
+    label: 'おっこちた（2Pのかち）',
+    snapshot: { hp: MOCK_HP, ringOut: { p1: true, p2: false }, remainingSeconds: MOCK_REMAINING_SECONDS },
+  },
+  {
+    label: 'タイムアップ',
+    snapshot: { hp: MOCK_HP, ringOut: { p1: false, p2: false }, remainingSeconds: 0 },
+  },
+  {
+    label: 'タイムアップ（ひきわけ）',
+    snapshot: { hp: { p1: 30, p2: 30 }, ringOut: { p1: false, p2: false }, remainingSeconds: 0 },
+  },
+]
 
 // 送られてきた後（順番待ち・解析中・完成）だけコマの見た目がある
 function hasLook(status: ScanStatus) {
@@ -69,6 +93,10 @@ export function HostFlow() {
   const [step, setStep] = useState<Step>('lobby')
   const [scanStep, setScanStep] = useState(0)
   const [winner, setWinner] = useState<PlayerId>('p1')
+  // 決着したら対戦画面の上に演出を重ねる。null のあいだは対戦中
+  const [outcome, setOutcome] = useState<BattleOutcome | null>(null)
+  // 時間切れの山くらべに出す、決着したときの HP と勝者（null なら引き分け）
+  const [timeUp, setTimeUp] = useState<{ hp: Record<PlayerId, number>; winner: PlayerId | null } | null>(null)
   const [controllerUrls, setControllerUrls] =
     useState<ControllerUrls | null>(null)
 
@@ -232,15 +260,40 @@ export function HostFlow() {
   const scanStatuses = MOCK_SCAN_STEPS[scanStep]
   const scanIsLast = scanStep === MOCK_SCAN_STEPS.length - 1
 
-  const finish = (player: PlayerId) => {
+  const restart = () => {
+    setScanStep(0)
+    setOutcome(null)
+    setTimeUp(null)
+    setStep('lobby')
+  }
+
+  const finish = (snapshot: BattleSnapshot) => {
+    const finished = judgeBattle(snapshot)
+    setOutcome(finished)
+    setTimeUp(finished?.reason === 'timeUp' ? { hp: snapshot.hp, winner: finished.winner } : null)
+  }
+
+  const showResult = (player: PlayerId) => {
     setWinner(player)
     setStep('result')
   }
 
-  const restart = () => {
-    setScanStep(0)
-    setStep('lobby')
+  // 決着の演出が終わったら、時間切れは山くらべへ、それ以外は結果画面へ
+  const afterFinish = (finished: BattleOutcome) => {
+    setOutcome(null)
+    if (finished.reason === 'timeUp') {
+      setStep('timeUp')
+      return
+    }
+    // 同時に両方が負けた引き分けを出す画面は無いので、いまはロビーへ戻す
+    if (finished.winner === null) {
+      restart()
+      return
+    }
+    showResult(finished.winner)
   }
+
+  const timeUpWinner = timeUp?.winner ?? null
 
   return (
     <>
@@ -278,6 +331,15 @@ export function HostFlow() {
             p1: { look: MOCK_SCANNEES.p1, stats: MOCK_STATS.p1 },
             p2: { look: MOCK_SCANNEES.p2, stats: MOCK_STATS.p2 },
           }}
+          onDone={() => setStep('versus')}
+        />
+      )}
+      {step === 'versus' && (
+        <VersusScreen
+          fighters={{
+            p1: { look: MOCK_SCANNEES.p1, stats: MOCK_STATS.p1 },
+            p2: { look: MOCK_SCANNEES.p2, stats: MOCK_STATS.p2 },
+          }}
           onDone={() => setStep('battle')}
         />
       )}
@@ -290,7 +352,26 @@ export function HostFlow() {
             }}
             remainingSeconds={MOCK_REMAINING_SECONDS}
           />
+          {outcome !== null && (
+            // 決着ごとに作り直して、演出を最初から流す
+            <FinishOverlay
+              key={`${outcome.reason}-${outcome.winner}`}
+              outcome={outcome}
+              onDone={() => afterFinish(outcome)}
+            />
+          )}
         </HostStage>
+      )}
+      {step === 'timeUp' && timeUp !== null && (
+        <TimeUpScreen
+          fighters={{
+            p1: { look: MOCK_SCANNEES.p1, hp: timeUp.hp.p1 },
+            p2: { look: MOCK_SCANNEES.p2, hp: timeUp.hp.p2 },
+          }}
+          winner={timeUpWinner}
+          // 引き分けはこの画面のままスマホで次を選ぶ（再戦の2択は #45）
+          onDone={timeUpWinner === null ? undefined : () => showResult(timeUpWinner)}
+        />
       )}
       {step === 'result' && <ResultScreen winner={winner} looks={MOCK_SCANNEES} />}
 
@@ -311,21 +392,23 @@ export function HostFlow() {
           </button>
         )}
         {step === 'entrance' && (
+          <button type="button" onClick={() => setStep('versus')}>
+            モック：とばす ▶
+          </button>
+        )}
+        {step === 'versus' && (
           <button type="button" onClick={() => setStep('battle')}>
             モック：とばす ▶
           </button>
         )}
-        {step === 'battle' && (
-          <>
-            <button type="button" onClick={() => finish('p1')}>
-              モック：1Pのかち ▶
+        {step === 'battle' &&
+          outcome === null &&
+          MOCK_FINISHES.map((mock) => (
+            <button key={mock.label} type="button" onClick={() => finish(mock.snapshot)}>
+              モック：{mock.label} ▶
             </button>
-            <button type="button" onClick={() => finish('p2')}>
-              モック：2Pのかち ▶
-            </button>
-          </>
-        )}
-        {step === 'result' && (
+          ))}
+        {(step === 'result' || step === 'timeUp') && (
           <button type="button" onClick={restart}>
             モック：ロビーへ ▶
           </button>
