@@ -49,7 +49,7 @@ export const timing = {
   bCooldown: 3, // spec
   aMinInterval: 0.4, // spec
   shrinkWarning: 3, // spec: 縮小の予告(「まんなかへ にげて!」)
-  entrancePerPlayer: 2.5, // draft
+  entrancePerPlayer: 6, // spec: 登場演出の1人ぶん(見本 pc-04-entrance の流れと同じ)
   countdownStep: 0.8, // draft: 3・2・1・GO! の1コマ
   finishImpactFreeze: 0.7, // draft: 決着の最後の一撃で止める(暗転ストップ)
   finishHold: 2, // draft: 決着の文字を見せる時間
