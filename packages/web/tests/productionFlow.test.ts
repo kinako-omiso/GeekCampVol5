@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
 import test, { type TestContext } from 'node:test'
 import { assignScanDirections, SCAN_DIRECTIONS, controlMessageSchema, assetManifestSchema,
   type AssetManifest, type ControlMessage, type PlayerSlot, type SelectionStroke } from '@gikcamp/protocol'
@@ -6,6 +7,7 @@ import { BattleRules } from '../src/features/battle/game/battleRules.ts'
 import { HostMatch } from '../src/app/host/hostMatch.ts'
 import type { BattleFighterModel } from '../src/features/battle/game/fighterPlacement.ts'
 
+const { util } = createRequire(import.meta.url)('peerjs') as typeof import('peerjs')
 const stroke: SelectionStroke[] = [{ mode: 'add', points: [{ x: 0.5, y: 0.5 }, { x: 0.6, y: 0.5 }] }]
 const stats = { hp: 100, attack: 1, reach: 1, turnSpeed: 180, moveSpeed: 1 }
 const mask = { width: 8, height: 8, data: Uint8Array.from({ length: 64 }, (_, i) => i > 15 && i < 48 ? 1 : 0) }
@@ -20,7 +22,12 @@ function setup(t: TestContext) {
   const calls = { segments: [] as number[], auto: [] as number[], builds: 0, frame: 0 }
   let failBuild = false, failSegment = false, emptyFront = false, failDelivery = false
   const match = new HostMatch({
-    sendControl: (slot, message) => controls.push({ slot, message }),
+    sendControl: (slot, message) => {
+      // 実際のcontrol接続と同じバイナリ変換を通し、スマホ側の検証まで確認する。
+      const packet = util.pack(message)
+      assert.ok(packet instanceof ArrayBuffer)
+      controls.push({ slot, message: controlMessageSchema.parse(util.unpack(packet)) })
+    },
     sendAsset: async (_slot, blob, details) => {
       if (failDelivery) throw new Error('Mask返送が中断しました。')
       const manifest = { ...details, transferId: details.transferId!, fileName: 'mask.png', mimeType: 'image/png',
@@ -58,6 +65,24 @@ function setup(t: TestContext) {
     failBuild: () => { failBuild = true }, failSegment: (value: boolean) => { failSegment = value },
     emptyFront: (value: boolean) => { emptyFront = value }, failDelivery: (value: boolean) => { failDelivery = value } }
 }
+
+test('QR接続直後と再接続時の画面状態をスマホが受信できる', (t) => {
+  const fixture = setup(t)
+  for (const slot of [1, 2] as const) {
+    const initial = fixture.controls.find((entry) => entry.slot === slot && entry.message.type === 'flow-state')!.message
+    assert.ok(initial.type === 'flow-state')
+    assert.equal(initial.phase, 'join')
+    assert.equal(initial.roundId, fixture.match.snapshot().roundId)
+    assert.equal(initial.scanId, undefined)
+    assert.equal(initial.winner, undefined)
+    assert.equal(fixture.latestFlow(slot).phase, 'capture')
+    fixture.match.disconnected(slot)
+    fixture.match.connected(slot)
+    assert.equal(fixture.latestFlow(slot).phase, 'join')
+    fixture.match.control(slot, { type: 'sensor-ready' })
+    assert.equal(fixture.latestFlow(slot).phase, 'capture')
+  }
+})
 
 test('どの写真を正面に選んでも、残りを元の撮影順で右・背面・左へ割り当てる', () => {
   for (let front = 0; front < 4; front += 1) {
@@ -115,6 +140,7 @@ test('4枚のMaskを返送し、修正対象だけ再計算して最新の版の
   const fixture = setup(t), scanId = await fixture.scan(1)
   assert.equal(fixture.deliveries.length, 4)
   assert.equal(fixture.latestFlow(1).phase, 'review')
+  assert.equal(fixture.latestFlow(1).scanId, scanId)
   assert.equal(fixture.calls.auto.length, 3)
   fixture.match.control(1, { type: 'scan-revise', scanId, direction: 'right', revision: 1, strokes: stroke })
   await flush()
@@ -158,6 +184,7 @@ test('2人分の準備後に開始し、通信断では入力を止め、再準�
   fixture.match.battleSnapshot({ hp: { p1: 100, p2: 0 }, remainingSeconds: 30, radius: 6, shrinkWarning: false,
     result: { winner: 'p1', reason: 'hp' } })
   assert.equal(fixture.latestFlow(1).phase, 'result')
+  assert.equal(fixture.latestFlow(1).winner, 1)
   const round = fixture.match.snapshot().roundId
   fixture.match.restart()
   assert.equal(fixture.match.snapshot().step, 'lobby')

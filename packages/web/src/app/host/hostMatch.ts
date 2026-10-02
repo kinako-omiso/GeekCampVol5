@@ -297,9 +297,12 @@ export class HostMatch {
       else if (this.state.step === 'scan') phase = !scan ? 'capture' : scan.phase === 'receiving' ? 'capture' :
         scan.busy ? 'processing' : scan.phase === 'review' ? 'review' : 'waiting'
     }
-    return { type: 'flow-state', roundId: this.state.roundId, phase, scanId: scan?.id,
-      paused: this.state.paused, resumeSeconds: this.state.resumeSeconds, message: player.message,
-      winner: this.state.result?.winner === 'draw' ? 'draw' : this.state.result ? this.state.result.winner === 'p1' ? 1 : 2 : undefined }
+    const message: FlowState = { type: 'flow-state', roundId: this.state.roundId, phase,
+      paused: this.state.paused, resumeSeconds: this.state.resumeSeconds, message: player.message }
+    // PeerJSのバイナリ変換でundefinedがnullになるため、未設定の任意項目は含めない。
+    if (scan) message.scanId = scan.id
+    if (this.state.result) message.winner = this.state.result.winner === 'draw' ? 'draw' : this.state.result.winner === 'p1' ? 1 : 2
+    return message
   }
   private publish(sendState = true) {
     if (this.disposed) return
