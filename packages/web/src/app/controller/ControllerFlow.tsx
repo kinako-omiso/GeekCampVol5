@@ -190,9 +190,9 @@ export function ControllerFlow() {
       {step === 'capture' && (
         <CaptureScreen
           player={player}
-          onSendPhoto={(
-            photo,
-            dimensions,
+          onSendCapture={(
+            shots,
+            selection,
             onProgress,
           ) => {
             const session = sessionRef.current
@@ -203,9 +203,9 @@ export function ControllerFlow() {
               )
             }
 
-            return session.sendPhoto(
-              photo,
-              dimensions,
+            return session.sendCapture(
+              shots,
+              selection,
               onProgress,
             )
           }}

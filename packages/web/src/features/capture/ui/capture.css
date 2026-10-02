@@ -32,7 +32,7 @@
 .capture__send-error {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--u) * 24);
+  bottom: calc(var(--u) * 96);
   z-index: 2;
   transform: translateX(-50%);
   padding: calc(var(--u) * 8) calc(var(--u) * 16);
@@ -74,6 +74,73 @@
 }
 .capture__tip-icon { width: calc(var(--u) * 24); height: calc(var(--u) * 24); }
 
+/* 撮影中の向きと、範囲指定の案内 */
+.capture__pill {
+  position: absolute;
+  left: calc(var(--u) * 24);
+  bottom: calc(var(--u) * 22);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 10);
+  padding: calc(var(--u) * 8) calc(var(--u) * 20) calc(var(--u) * 8) calc(var(--u) * 14);
+  background: var(--ss-sun);
+  border: calc(var(--u) * 5) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  box-shadow: 0 calc(var(--u) * 5) 0 var(--ss-ink);
+  font-size: calc(var(--u) * 26);
+  pointer-events: none;
+}
+.capture__select ~ .capture__pill { top: calc(var(--u) * 22); bottom: auto; }
+.capture__pill-step {
+  padding: 0 calc(var(--u) * 10);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-ink);
+  color: #fff;
+  font-size: calc(var(--u) * 22);
+}
+.capture__pill-icon { width: calc(var(--u) * 30); height: calc(var(--u) * 30); }
+
+/* ---- 範囲指定：正面の写真とタップの印 ---- */
+.capture__select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+.capture__marker circle { stroke: var(--ss-ink); }
+.capture__marker path { fill: none; stroke: #fff; stroke-linecap: round; }
+.capture__marker.is-add circle { fill: var(--player); }
+.capture__marker.is-remove circle { fill: var(--ss-ink); }
+.capture__marker.is-remove path { stroke: var(--ss-cream); }
+
+.capture__modes {
+  position: absolute;
+  left: calc(var(--u) * 24);
+  bottom: calc(var(--u) * 22);
+  display: flex;
+  gap: calc(var(--u) * 4);
+  padding: calc(var(--u) * 5);
+  background: var(--ss-cream);
+  border: calc(var(--u) * 5) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+}
+.capture__mode {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 6);
+  height: calc(var(--u) * 46);
+  padding: 0 calc(var(--u) * 18);
+  border: none;
+  border-radius: var(--ss-radius-pill);
+  background: transparent;
+  font-size: calc(var(--u) * 20);
+}
+.capture__mode.is-active.is-add { background: var(--player); color: #fff; }
+.capture__mode.is-active.is-remove { background: var(--ss-ink); color: #fff; }
+.capture__mode-icon { width: calc(var(--u) * 22); height: calc(var(--u) * 22); }
+.capture__mode-icon svg { stroke-width: 3.2; }
+
 /* ---- 右：プレイヤー色のパネル ---- */
 .capture__side {
   box-sizing: border-box;
@@ -111,6 +178,89 @@
 .capture__shutter-icon { width: calc(var(--u) * 66); height: calc(var(--u) * 66); }
 .capture__shutter-icon svg { stroke-width: 2.2; }
 .capture__shutter-label { font-size: calc(var(--u) * 28); color: #fff; }
+
+/* 撮った向きの一覧。撮った写真はタップで撮り直せる */
+.capture__views {
+  display: flex;
+  gap: calc(var(--u) * 6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.capture__view {
+  position: relative;
+  width: calc(var(--u) * 42);
+  height: calc(var(--u) * 52);
+  box-sizing: border-box;
+  overflow: hidden;
+  border: calc(var(--u) * 3) solid var(--ss-ink);
+  border-radius: calc(var(--u) * 10);
+  background: color-mix(in srgb, var(--ss-cream) 45%, transparent);
+}
+.capture__view.is-current { outline: calc(var(--u) * 4) solid var(--ss-sun); }
+.capture__view:disabled { cursor: default; }
+.capture__view-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.capture__view-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--ss-ink);
+  color: #fff;
+  font-size: calc(var(--u) * 11);
+  text-align: center;
+}
+.capture__back {
+  width: calc(var(--u) * 190);
+  height: calc(var(--u) * 40);
+  box-sizing: border-box;
+  border: calc(var(--u) * 4) dashed rgb(255 255 255 / 0.85);
+  border-radius: calc(var(--u) * 20);
+  background: transparent;
+  color: #fff;
+  font-size: calc(var(--u) * 18);
+}
+
+/* 範囲指定のボタン */
+.capture__ok,
+.capture__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--u) * 190);
+  box-sizing: border-box;
+  border: calc(var(--u) * 6) solid var(--ss-ink);
+  border-radius: calc(var(--u) * 24);
+  box-shadow: 0 calc(var(--u) * 6) 0 var(--ss-ink);
+}
+.capture__ok {
+  flex-direction: column;
+  gap: calc(var(--u) * 4);
+  height: calc(var(--u) * 130);
+  background: var(--ss-sun);
+  font-size: calc(var(--u) * 44);
+  animation: capture-glow 1.2s ease-out infinite;
+}
+.capture__ok-icon { width: calc(var(--u) * 56); height: calc(var(--u) * 56); }
+.capture__ok-icon svg { stroke-width: 3.2; }
+.capture__action {
+  gap: calc(var(--u) * 8);
+  height: calc(var(--u) * 56);
+  background: var(--ss-cream);
+  font-size: calc(var(--u) * 22);
+}
+.capture__action-icon { width: calc(var(--u) * 28); height: calc(var(--u) * 28); }
+.capture__action-icon svg { stroke-width: 2.8; }
+.capture__ok:active,
+.capture__action:active { transform: translateY(calc(var(--u) * 6)); box-shadow: none; }
+.capture__ok:disabled,
+.capture__action:disabled { opacity: 0.5; animation: none; cursor: default; transform: none; }
 
 /* ---- 送信中 ---- */
 .capture__sending {
@@ -190,6 +340,10 @@
 @keyframes capture-ring {
   0% { box-shadow: 0 calc(var(--u) * 8) 0 var(--ss-ink), 0 0 0 0 rgb(255 255 255 / 0.9); }
   100% { box-shadow: 0 calc(var(--u) * 8) 0 var(--ss-ink), 0 0 0 calc(var(--u) * 20) rgb(255 255 255 / 0); }
+}
+@keyframes capture-glow {
+  0% { box-shadow: 0 calc(var(--u) * 6) 0 var(--ss-ink), 0 0 0 0 rgb(255 201 60 / 0.9); }
+  100% { box-shadow: 0 calc(var(--u) * 6) 0 var(--ss-ink), 0 0 0 calc(var(--u) * 18) rgb(255 201 60 / 0); }
 }
 @keyframes capture-up {
   0% { transform: translateY(calc(var(--u) * 12)); opacity: 0.3; }
