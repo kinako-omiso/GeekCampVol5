@@ -4,8 +4,13 @@ import { CaptureScreen } from '../../features/capture/ui/CaptureScreen'
 import { JoinScreen } from '../../features/join/JoinScreen'
 import { OrientScreen } from '../../features/orient/OrientScreen'
 import { PadScreen } from '../../features/pad/PadScreen'
+import {
+  RematchScreen,
+  type RematchChoice,
+} from '../../features/rematch/RematchScreen'
 import { ControllerPeerSession } from '../../lib/peer/controllerPeerSession.ts'
 import { parseControllerPairing } from '../../lib/peer/pairing.ts'
+import { MOCK_SCANNEES } from '../host/mock/mockScannees'
 import {
   createTiltNormalizer,
   getScreenAngle,
@@ -16,7 +21,7 @@ import type { PlayerId } from '../../../../../docs/design/tokens'
 import '../../../../../docs/design/tokens.css'
 import './controller.css'
 
-type Step = 'join' | 'capture' | 'orient' | 'pad'
+type Step = 'join' | 'capture' | 'orient' | 'pad' | 'result'
 
 type ConnectionState =
   | 'connecting'
@@ -29,6 +34,7 @@ const STEPS: Step[] = [
   'capture',
   'orient',
   'pad',
+  'result',
 ]
 
 export function ControllerFlow() {
@@ -36,6 +42,9 @@ export function ControllerFlow() {
   const query = searchParams.toString()
 
   const [step, setStep] = useState<Step>('join')
+  // モック：結果画面で選んだもの。「つぎへ」の行き先に使う
+  const [rematchChoice, setRematchChoice] =
+    useState<RematchChoice | null>(null)
   const [connectionState, setConnectionState] =
     useState<ConnectionState>('connecting')
   const [connectionMessage, setConnectionMessage] =
@@ -131,6 +140,13 @@ export function ControllerFlow() {
   }, [baseline, connectionState])
 
   const goNext = () => {
+    // 結果画面のあとは選んだものに合わせる（このまま → 対戦、あたらしく → スキャン）
+    if (step === 'result') {
+      setStep(rematchChoice === 'again' ? 'pad' : 'capture')
+      setRematchChoice(null)
+      return
+    }
+
     setStep((current) => {
       const currentIndex = STEPS.indexOf(current)
       return STEPS[(currentIndex + 1) % STEPS.length]
@@ -207,6 +223,15 @@ export function ControllerFlow() {
           onAttack={(button) => {
             sessionRef.current?.sendAttack(button)
           }}
+        />
+      )}
+
+      {/* モック：コマはスキャン結果とつなぐまで見本のものを使い、選んだ結果はまだ PC に送らない */}
+      {step === 'result' && (
+        <RematchScreen
+          player={player}
+          look={MOCK_SCANNEES[player]}
+          onChoose={setRematchChoice}
         />
       )}
 
