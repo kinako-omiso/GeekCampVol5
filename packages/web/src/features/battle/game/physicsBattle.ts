@@ -8,6 +8,7 @@ import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector'
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
 import { Mesh } from '@babylonjs/core/Meshes/mesh'
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder'
+import '@babylonjs/core/Rendering/outlineRenderer'
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData'
 import { PhysicsEventType, PhysicsMotionType, PhysicsShapeType } from '@babylonjs/core/Physics/v2/IPhysicsEnginePlugin'
 import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate'
@@ -22,8 +23,9 @@ import { enableHavok } from '../../../lib/babylon/havok'
 import { calculateKnockbackImpulse, TEST_ATTACK_MULTIPLIERS, TEST_ATTACK_VALUE } from './knockback'
 import { stepMovement, type MotionInput, type MovementState } from './movement'
 import { hasJustLeftRing, RING_RADIUS } from './ringExit'
+import { createArena } from './arena'
 import { createSampleMask } from './sampleMask'
-import { prepareFighterModel, type BattleFighterModel } from './fighterPlacement'
+import { prepareFighterModel, type BattleFighterModel, type PreparedFighter } from './fighterPlacement'
 import { createFighterMesh } from './fighterMesh'
 
 export type PhysicsBattleOptions = {
@@ -42,6 +44,24 @@ const ATTACK_MIN_INTERVAL_MS = 400
 const ATTACK_RETURN_MS = 200
 const ATTACKER_DRIVE_LOCK_MS = 180
 const DEFENDER_DRIVE_LOCK_MS = 250
+/**
+ * 対戦でのコマの倍率。生成モデルはサンプルと同じ高さ1にそろえてあり、そのままでは島（半径6）に対して小さすぎるため、
+ * 見本（docs/design/screens/pc-06-battle.html）の「コマの幅が島の直径の約1/4」に合わせて大きくする。
+ */
+const BATTLE_FIGHTER_SCALE = 3
+// 横に長いモデルでも開始時に重ならないよう、足元の半径（足元リングの半径）をこの値までに抑える。両者の開始距離は 6.0
+const MAX_FOOTPRINT_RADIUS = 1.8
+// 足元リングをモデルの輪郭より少し外に出す
+const FOOTPRINT_MARGIN = 0.15
+// 離れたと見なして接触の通知を再び有効にする、両者の中心の距離
+const CONTACT_REARM_DISTANCE = 2 * MAX_FOOTPRINT_RADIUS + 0.4
+// カメラ。見本の楕円（横:縦 ≒ 1.6:1）に近い仰角39°で、島を画面の中央下に置く
+const CAMERA_ELEVATION = 39 * Math.PI / 180
+const CAMERA_RADIUS = 15
+const CAMERA_TARGET_HEIGHT = 1
+// 注視点を画面の奥へずらす量（HUD の下に島が来るようにする）
+const CAMERA_TARGET_SHIFT = 1.2
+const CAMERA_ALPHA = -Math.PI / 4
 
 type TestAttack = {
   button?: 'a' | 'b'
@@ -53,6 +73,9 @@ type TestAttack = {
 
 type Fighter = {
   mesh: Mesh
+  ringMaterial: StandardMaterial
+  ringColor: Color3
+  shadow: Mesh
   aggregate: PhysicsAggregate
   movement: MovementState
   input: MotionInput
@@ -79,9 +102,51 @@ export type PhysicsBattle = {
   dispose: () => void
 }
 
-function createFighter(scene: Scene, player: PlayerId, sample: ReturnType<typeof reconstructQuickScan>, model?: BattleFighterModel, stats?: FighterStats): Fighter {
-  const prepared = model ? prepareFighterModel(model) : undefined
-  const reconstruction = prepared?.reconstruction ?? sample
+function scalePoints(points: Float32Array, scale: number) {
+  return points.map((value) => value * scale)
+}
+
+/** 足元の中心からいちばん遠い頂点までの水平距離。 */
+function footprintRadius(positions: Float32Array, footX: number, footZ: number) {
+  let radius = 0
+  for (let index = 0; index < positions.length; index += 3) {
+    radius = Math.max(radius, Math.hypot(positions[index] - footX, positions[index + 2] - footZ))
+  }
+  return radius
+}
+
+/** 表示・衝突・重心を対戦の大きさへ一様にそろえる。足元の中心（生成モデルは原点、サンプルは重心）を基準に倍率を決める。 */
+function scaleForBattle(sample: ReturnType<typeof reconstructQuickScan>, prepared?: PreparedFighter) {
+  const source = prepared?.reconstruction ?? sample
+  const centroid = prepared ? undefined : getVolumeCentroid(source)
+  const radius = footprintRadius(source.positions, centroid?.x ?? 0, centroid?.z ?? 0)
+  const scale = radius > 0 ? Math.min(BATTLE_FIGHTER_SCALE, MAX_FOOTPRINT_RADIUS / radius) : BATTLE_FIGHTER_SCALE
+  return {
+    sample: { ...sample, positions: scalePoints(sample.positions, scale) },
+    prepared: prepared && {
+      reconstruction: { ...prepared.reconstruction, positions: scalePoints(prepared.reconstruction.positions, scale) },
+      collisionPositions: scalePoints(prepared.collisionPositions, scale),
+      centerOfMass: prepared.centerOfMass.map((value) => value * scale) as PreparedFighter['centerOfMass'],
+    },
+    footprint: radius * scale + FOOTPRINT_MARGIN,
+  }
+}
+
+/** 足元の前側に付ける向きの三角（ローカル +z が前）。 */
+function createPointer(name: string, scene: Scene, footprint: number, y: number) {
+  const mesh = new Mesh(name, scene)
+  const data = new VertexData()
+  data.positions = [0, y, footprint + 0.5, -0.3, y, footprint + 0.08, 0.3, y, footprint + 0.08]
+  data.indices = [0, 1, 2]
+  data.normals = [0, 1, 0, 0, 1, 0, 0, 1, 0]
+  data.applyToMesh(mesh)
+  return mesh
+}
+
+function createFighter(scene: Scene, player: PlayerId, rawSample: ReturnType<typeof reconstructQuickScan>, model?: BattleFighterModel, stats?: FighterStats): Fighter {
+  const scaled = scaleForBattle(rawSample, model ? prepareFighterModel(model) : undefined)
+  const prepared = scaled.prepared
+  const reconstruction = prepared?.reconstruction ?? scaled.sample
   const center = prepared ? { x: prepared.centerOfMass[0], y: prepared.centerOfMass[1], z: prepared.centerOfMass[2] } : getVolumeCentroid(reconstruction)
   const centered = new Float32Array(reconstruction.positions.length)
   let bottom = Infinity
@@ -108,19 +173,42 @@ function createFighter(scene: Scene, player: PlayerId, sample: ReturnType<typeof
   }
   mesh.rotationQuaternion = Quaternion.RotationYawPitchRoll(yaw, 0, 0)
 
+  // 足元のプレイヤーカラーのリング（見本：うすい塗り＋太い輪＋前側の三角）
+  const ringColor = Color3.FromHexString(players[player].main)
   const ringMaterial = new StandardMaterial(player + '-ring-material', scene)
-  ringMaterial.diffuseColor = Color3.FromHexString(players[player].main)
-  ringMaterial.emissiveColor = Color3.FromHexString(players[player].dark)
-  const ring = MeshBuilder.CreateTorus(player + '-ring', { diameter: 1.25, thickness: 0.055, tessellation: 48 }, scene)
-  ring.parent = mesh
-  ring.position.y = bottom + 0.03
-  if (prepared && center) { ring.position.x = -center.x; ring.position.z = -center.z }
+  ringMaterial.disableLighting = true
+  ringMaterial.emissiveColor = ringColor.clone()
+  ringMaterial.backFaceCulling = false
+  const fillMaterial = new StandardMaterial(player + '-ring-fill-material', scene)
+  fillMaterial.disableLighting = true
+  fillMaterial.emissiveColor = ringColor.clone()
+  fillMaterial.alpha = 0.25
+  const foot = new Mesh(player + '-foot', scene)
+  foot.parent = mesh
+  foot.position.y = bottom + 0.02
+  if (prepared && center) { foot.position.x = -center.x; foot.position.z = -center.z }
+  const fill = MeshBuilder.CreateDisc(player + '-ring-fill', { radius: scaled.footprint, tessellation: 64 }, scene)
+  fill.rotation.x = Math.PI / 2
+  fill.material = fillMaterial
+  const ring = MeshBuilder.CreateTorus(player + '-ring', { diameter: scaled.footprint * 2, thickness: 0.2, tessellation: 64 }, scene)
+  ring.scaling.y = 0.3
   ring.material = ringMaterial
-  const front = MeshBuilder.CreateBox(player + '-front', { width: 0.2, height: 0.035, depth: 0.28 }, scene)
-  front.parent = mesh
-  front.position.set(0, bottom + 0.06, 0.55)
-  if (prepared && center) { front.position.x = -center.x; front.position.z -= center.z }
-  front.material = ringMaterial
+  const pointer = createPointer(player + '-front', scene, scaled.footprint, 0.02)
+  pointer.material = ringMaterial
+  pointer.renderOutline = true
+  pointer.outlineColor = Color3.FromHexString(colors.ink)
+  pointer.outlineWidth = 0.04
+  for (const part of [fill, ring, pointer]) { part.parent = foot; part.isPickable = false }
+
+  // 床に落ちる影。コマが傾いても床に貼りつくよう、コマの子にはしない
+  const shadow = MeshBuilder.CreateDisc(player + '-shadow', { radius: scaled.footprint * 0.8, tessellation: 48 }, scene)
+  shadow.rotation.x = Math.PI / 2
+  const shadowMaterial = new StandardMaterial(player + '-shadow-material', scene)
+  shadowMaterial.disableLighting = true
+  shadowMaterial.emissiveColor = Color3.FromHexString(colors.ink)
+  shadowMaterial.alpha = 0.28
+  shadow.material = shadowMaterial
+  shadow.isPickable = false
 
   // 凸包は Havok の衝突用形状。能力値を出す C++ の形状解析には使わない。
   let collisionMesh: Mesh | undefined
@@ -154,6 +242,9 @@ function createFighter(scene: Scene, player: PlayerId, sample: ReturnType<typeof
 
   return {
     mesh,
+    ringMaterial,
+    ringColor,
+    shadow,
     aggregate,
     movement: { x: mesh.position.x, z: mesh.position.z, yaw, smoothedX: 0, smoothedY: 0 },
     input: { x: 0, y: 0 },
@@ -272,8 +363,7 @@ export async function mountPhysicsBattle(
     }
     const material = fighter.mesh.material as StandardMaterial
     material.emissiveColor = now < fighter.flashUntil ? Color3.White() : Color3.Black()
-    const ring = fighter.mesh.getChildMeshes()[0]
-    if (ring) (ring.material as StandardMaterial).emissiveColor = fighter.windup ? Color3.White() : Color3.Black()
+    fighter.ringMaterial.emissiveColor = fighter.windup ? Color3.White() : fighter.ringColor
   }
 
   const dispose = () => {
@@ -294,19 +384,10 @@ export async function mountPhysicsBattle(
     await enableHavok(scene, !!options.production)
     if (signal?.aborted) throw new DOMException('中断しました。', 'AbortError')
 
-    const sky = Color3.FromHexString(colors.sky)
-    scene.clearColor = new Color4(sky.r, sky.g, sky.b, 1)
-    const ground = MeshBuilder.CreateCylinder('arena', { diameter: RING_RADIUS * 2, height: 0.12, tessellation: 96 }, scene)
-    ground.position.y = -0.06
-    const grass = new StandardMaterial('arena-grass', scene)
-    grass.diffuseColor = Color3.FromHexString(colors.grass)
-    ground.material = grass
-    const rim = MeshBuilder.CreateTorus('arena-rim', { diameter: RING_RADIUS * 2, thickness: 0.09, tessellation: 96 }, scene)
-    rim.position.y = 0.04
-    const rimMaterial = new StandardMaterial('arena-rim-material', scene)
-    rimMaterial.diffuseColor = Color3.FromHexString(colors.grassLight)
-    rimMaterial.emissiveColor = Color3.FromHexString(colors.grassStripe)
-    rim.material = rimMaterial
+    // 空・遠くの山・雲海は canvas の後ろの 2D（ArenaBackdrop）で描く。本番以外（検証ページ）は空の色で塗る
+    scene.clearColor = options.production ? new Color4(0, 0, 0, 0) : Color4.FromHexString(colors.sky + 'ff')
+    const arena = createArena(scene)
+    const ground = arena.ground
 
     floorRegion = new PhysicsShapeCylinder(
       new Vector3(0, -0.06, 0),
@@ -396,15 +477,28 @@ export async function mountPhysicsBattle(
     })
 
     const ambient = new HemisphericLight('ambient', Vector3.Up(), scene)
-    ambient.intensity = 0.65
+    ambient.intensity = 0.75
     const key = new DirectionalLight('key', new Vector3(-0.5, -1, 0.4), scene)
-    key.intensity = 0.8
+    key.intensity = 0.7
+    // 注視点を画面の奥（カメラから離れる水平方向）へずらす
+    const targetShift = new Vector3(-Math.cos(CAMERA_ALPHA), 0, -Math.sin(CAMERA_ALPHA)).scale(CAMERA_TARGET_SHIFT)
     const camera = new ArcRotateCamera(
-      'battle-camera', -Math.PI / 4, Math.PI / 2 - 50 * Math.PI / 180,
-      13, new Vector3(0, 0.3, 0), scene,
+      'battle-camera', CAMERA_ALPHA, Math.PI / 2 - CAMERA_ELEVATION,
+      CAMERA_RADIUS, new Vector3(0, CAMERA_TARGET_HEIGHT, 0).add(targetShift), scene,
     )
-    camera.lowerRadiusLimit = 13
-    camera.upperRadiusLimit = 16.9
+    camera.lowerRadiusLimit = CAMERA_RADIUS
+    camera.upperRadiusLimit = CAMERA_RADIUS * 1.3
+    const arenaState = () => {
+      const snapshot = rules?.snapshot()
+      return { radius: snapshot?.radius ?? RING_RADIUS, nextRadius: snapshot?.nextRadius ?? RING_RADIUS }
+    }
+    const placeShadows = () => {
+      for (const fighter of Object.values(activeFighters)) {
+        const center = fighter.aggregate.body.getObjectCenterWorld()
+        fighter.shadow.isVisible = !fighter.out
+        fighter.shadow.position.set(center.x, 0.012, center.z)
+      }
+    }
 
     resizeObserver = new ResizeObserver(() => engine.resize())
     resizeObserver.observe(canvas)
@@ -413,7 +507,8 @@ export async function mountPhysicsBattle(
       const seconds = Math.min(Math.max(engine.getDeltaTime() / 1000, 1 / 240), 0.05)
       const frozen = paused || !!rules?.snapshot().result || performance.now() < hitStopUntil
       scene.physicsEnabled = !frozen
-      if (frozen) { scene.render(); return }
+      arena.update(arenaState(), performance.now())
+      if (frozen) { placeShadows(); scene.render(); return }
       if (rules) simulationMs += seconds * 1000
       const now = rules ? simulationMs : performance.now()
       if (rules) {
@@ -425,17 +520,16 @@ export async function mountPhysicsBattle(
       }
       drive(activeFighters.p1, seconds, now)
       drive(activeFighters.p2, seconds, now)
+      placeShadows()
       scene.render()
       const separationAfterStep = Math.hypot(
         activeFighters.p1.mesh.position.x - activeFighters.p2.mesh.position.x,
         activeFighters.p1.mesh.position.z - activeFighters.p2.mesh.position.z,
       )
-      if (separationAfterStep > 2) contactArmed = true
+      if (separationAfterStep > CONTACT_REARM_DISTANCE) contactArmed = true
 
-      const snapshot = rules?.snapshot()
-      const radius = snapshot?.radius ?? RING_RADIUS
-      rim.scaling.set(radius / RING_RADIUS, 1, radius / RING_RADIUS)
-      rim.isVisible = !snapshot?.shrinkWarning || Math.floor(simulationMs / 200) % 2 === 0
+      // 場外判定は見た目（草の島）と同じ有効半径で、コマの重心が外へ出たかを見る
+      const radius = arenaState().radius
       const outs: PlayerId[] = []
       for (const player of ['p1', 'p2'] as const) {
         const fighter = activeFighters[player]
@@ -468,11 +562,11 @@ export async function mountPhysicsBattle(
 
       const p1 = activeFighters.p1.mesh.position
       const p2 = activeFighters.p2.mesh.position
-      const target = new Vector3((p1.x + p2.x) / 2, 0.3, (p1.z + p2.z) / 2)
+      const target = new Vector3((p1.x + p2.x) / 2, CAMERA_TARGET_HEIGHT, (p1.z + p2.z) / 2).add(targetShift)
       const blend = Math.min(1, seconds * 5)
       camera.setTarget(Vector3.Lerp(camera.target, target, blend), false, false, true)
       const separation = Math.hypot(p1.x - p2.x, p1.z - p2.z)
-      const cameraRadius = 13 * (1 + 0.3 * Math.min(1, separation / 12))
+      const cameraRadius = CAMERA_RADIUS * (1 + 0.3 * Math.min(1, separation / 12))
       camera.radius += (cameraRadius - camera.radius) * blend
     })
 

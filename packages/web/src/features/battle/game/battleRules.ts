@@ -1,13 +1,27 @@
 import type { FighterStats } from '@gikcamp/protocol'
+import { RING_RADIUS } from './ringExit.ts'
 
 type Player = 'p1' | 'p2'
 export type BattleResult = { winner: Player | 'draw'; reason: 'hp' | 'out' | 'timeout' }
+// nextRadius は予告中なら縮小後の半径、それ以外は radius と同じ
 export type BattleSnapshot = { hp: Record<Player, number>; remainingSeconds: number;
-  radius: number; shrinkWarning: boolean; result: BattleResult | null }
+  radius: number; nextRadius: number; shrinkWarning: boolean; result: BattleResult | null }
 export const ATTACKS = {
   a: { damage: 3, reach: 1.2, windupMs: 0, intervalMs: 400 },
   b: { damage: 18, reach: 2.4, windupMs: 300, intervalMs: 3000 },
 } as const
+/** リング縮小の段階（仕様書「リング縮小」）。at 秒で縮み、その3秒前から予告する。 */
+export const RING_STAGES = [
+  { at: 0, radius: RING_RADIUS },
+  { at: 28, radius: 4.2 },
+  { at: 48, radius: 2.7 },
+] as const
+const SHRINK_WARNING_SECONDS = 3
+
+function radiusAt(elapsed: number): number {
+  return RING_STAGES.reduce<number>((radius, stage) => elapsed >= stage.at ? stage.radius : radius, RING_RADIUS)
+}
+
 export type BattleHit = { attacker: Player; target: Player; button: 'a' | 'b' }
 
 /** 同じ物理ステップの両者の命中・場外をまとめて評価する。 */
@@ -42,8 +56,9 @@ export class BattleRules {
   }
 
   snapshot(): BattleSnapshot {
+    const radius = radiusAt(this.elapsed)
+    const nextRadius = radiusAt(this.elapsed + SHRINK_WARNING_SECONDS)
     return { hp: { ...this.hp }, remainingSeconds: Math.max(0, 60 - this.elapsed),
-      radius: this.elapsed >= 48 ? 2.7 : this.elapsed >= 28 ? 4.2 : 6,
-      shrinkWarning: (this.elapsed >= 25 && this.elapsed < 28) || (this.elapsed >= 45 && this.elapsed < 48), result: this.result }
+      radius, nextRadius, shrinkWarning: nextRadius < radius, result: this.result }
   }
 }

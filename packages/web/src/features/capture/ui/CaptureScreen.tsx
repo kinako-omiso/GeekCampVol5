@@ -59,25 +59,42 @@ export function CaptureScreen({ player, onSendScan, onSubmitted, initialScan, me
   const selected = photos.find((photo) => photo.id === front)
   const assignments = front && photos.length === 4 ? assignScanDirections(photos.map((photo) => photo.id), front) : null
   const labels: Record<ScanDirection, string> = { front: '正面', right: '右', back: '背面', left: '左' }
-  return <PhoneStage player={player} className="capture capture-live">
-    <header className="capture-live__header"><strong>{players[player].label} · {phase === 'shoot' ? `写真 ${photos.length + 1} / 4` : phase === 'choose' ? '正面を えらんでね' : '対象を ぬってね'}</strong>
-      <span>高さと距離をそろえ、対象を右・背面・左へ回してね</span></header>
-    {(error || message || !cameraSupported) && <p className="capture-live__error" role="alert">{error || message || 'カメラを使えません。HTTPSで開いてください。'}</p>}
-    {phase === 'shoot' && <div className="capture-live__camera"><video ref={videoRef} autoPlay playsInline muted /><div>
-      <button type="button" onClick={() => void shutter()} disabled={shooting}>パシャ!</button>
-      {photos.length > 0 && <button type="button" onClick={() => setPhotos(photos.slice(0, -1))}>前の写真を とりなおす</button>}
-      <p>あかるく · 1こだけ · まるごと</p></div></div>}
-    {phase === 'choose' && <div className="capture-live__photos">{photos.map((photo, index) => <button type="button" key={photo.id} onClick={() => {
-      setFront(photo.id); setStrokes([]); setPhase('select')
-    }}><img src={photo.url} alt={`写真 ${index + 1}`} /><span>これを正面にする</span></button>)}</div>}
-    {(phase === 'select' || phase === 'sending') && selected && <>
-      <StrokeEditor photoUrl={selected.url} strokes={strokes} onChange={setStrokes} disabled={phase === 'sending'} />
-      <footer className="capture-live__footer"><span>{assignments && SCAN_DIRECTIONS.map((direction) => `${labels[direction]}: ${photos.findIndex((photo) => photo.id === assignments[direction]) + 1}`).join(' / ')}</span>
-        <button type="button" disabled={phase === 'sending'} onClick={() => setPhase('choose')}>正面を えらびなおす</button>
-        <button type="button" disabled={phase === 'sending'} onClick={() => { setPhotos([]); setStrokes([]); setFront(''); setPhase('shoot') }}>4枚 とりなおす</button>
-        <button type="button" disabled={phase === 'sending' || !strokes.some((stroke) => stroke.mode === 'add')} onClick={() => void send()}>{error ? '4枚を おくりなおす' : '4枚を おくる'}</button></footer>
-    </>}
-    {phase === 'sending' && <div className="capture__sending" role="status"><div className="ss-display capture__sending-title">おくってるよ… {Math.round(progress * 100)}%</div>
-      <progress value={progress} max={1} /></div>}
+  const phaseText = phase === 'shoot' ? `写真 ${photos.length + 1} / 4` : phase === 'choose' ? '正面を えらんでね' : '対象を ぬってね'
+  // 見本：docs/design/screens/phone-02-scan.html（左に写真、右にプレイヤー色のパネルとボタン）
+  return <PhoneStage player={player} className="capture capture-shot">
+    <div className="capture-shot__main">
+      {phase === 'shoot' && <>
+        <video className="capture-shot__video" ref={videoRef} autoPlay playsInline muted />
+        <div className="capture__guide" aria-hidden="true" />
+        <p className="capture-shot__tips">あかるく · 1こだけ · まるごと</p>
+      </>}
+      {phase === 'choose' && <div className="capture-shot__photos">{photos.map((photo, index) => <button type="button" className="capture-shot__photo" key={photo.id} onClick={() => {
+        setFront(photo.id); setStrokes([]); setPhase('select')
+      }}><img src={photo.url} alt={`写真 ${index + 1}`} /><span>これを正面にする</span></button>)}</div>}
+      {(phase === 'select' || phase === 'sending') && selected &&
+        <StrokeEditor photoUrl={selected.url} strokes={strokes} onChange={setStrokes} disabled={phase === 'sending'} />}
+      <header className="capture-shot__header">
+        <strong className="ss-display capture-shot__phase">{phaseText}</strong>
+        <span className="capture-shot__hint">高さと距離をそろえ、対象を右・背面・左へ回してね</span>
+        {(error || message || !cameraSupported) && <p className="capture-shot__error" role="alert">{error || message || 'カメラを使えません。HTTPSで開いてください。'}</p>}
+      </header>
+      {phase === 'sending' && <div className="capture__sending" role="status"><div className="ss-display capture__sending-title">おくってるよ… {Math.round(progress * 100)}%</div>
+        <progress className="capture-shot__progress" value={progress} max={1} /></div>}
+    </div>
+    <aside className="capture-shot__side">
+      <div className="ss-display phone-ol-s capture-shot__player">{players[player].label}</div>
+      {phase === 'shoot' && <>
+        <button type="button" className="capture-shot__shutter" onClick={() => void shutter()} disabled={shooting}>
+          <span className="capture__shutter-ring" aria-hidden="true" /><span className="ss-display capture-shot__shutter-label">パシャ!</span>
+        </button>
+        {photos.length > 0 && <button type="button" className="capture-shot__action" onClick={() => setPhotos(photos.slice(0, -1))}>前の写真を とりなおす</button>}
+      </>}
+      {(phase === 'select' || phase === 'sending') && selected && <>
+        <button type="button" className="capture-shot__ok" disabled={phase === 'sending' || !strokes.some((stroke) => stroke.mode === 'add')} onClick={() => void send()}>{error ? '4枚を おくりなおす' : '4枚を おくる'}</button>
+        <button type="button" className="capture-shot__action" disabled={phase === 'sending'} onClick={() => setPhase('choose')}>正面を えらびなおす</button>
+        <button type="button" className="capture-shot__action" disabled={phase === 'sending'} onClick={() => { setPhotos([]); setStrokes([]); setFront(''); setPhase('shoot') }}>4枚 とりなおす</button>
+        <span className="capture-shot__assign">{assignments && SCAN_DIRECTIONS.map((direction) => `${labels[direction]}: ${photos.findIndex((photo) => photo.id === assignments[direction]) + 1}`).join(' / ')}</span>
+      </>}
+    </aside>
   </PhoneStage>
 }
