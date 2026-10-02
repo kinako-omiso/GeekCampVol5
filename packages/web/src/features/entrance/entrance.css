@@ -1,0 +1,563 @@
+/*
+ * 見本：docs/design/screens/pc-04-entrance.html（座標は 1280×720 のステージ上の px）
+ * 見本は 6 秒でくり返すが、ここでは1人ぶんの流れ（--entrance-duration）を1回だけ再生する。
+ * keyframes の % は見本と同じ。まわりの動き（後光・雲・しましま・キラキラ）はくり返す。
+ * 動きを止めたとき（prefers-reduced-motion）に最後の見た目になるよう、ふだんのスタイルは「出きった状態」にしておく。
+ */
+.entrance {
+  --player: var(--ss-p1);
+  --player-light: var(--ss-p1-light);
+  /* tokens.css に無い色。見本の値をここだけで使う */
+  --entrance-stripe: #8FB4FF;
+  --entrance-stripe-light: #A9C6FF;
+}
+.entrance--p2 {
+  --player: var(--ss-p2);
+  --player-light: var(--ss-p2-light);
+  --entrance-stripe: #FF97AE;
+  --entrance-stripe-light: #FFB1C2;
+}
+
+.entrance__scene {
+  position: absolute;
+  inset: 0;
+}
+
+/* 1回だけ流す動き。見本の 6 秒の % をそのまま使う */
+.entrance__fade,
+.entrance__drop,
+.entrance__squash,
+.entrance__lines,
+.entrance__eyes-shut,
+.entrance__eyes-open,
+.entrance__puff,
+.entrance__flash,
+.entrance__shake,
+.entrance__dosun,
+.entrance__pachi,
+.entrance__banner,
+.entrance__stat,
+.entrance__ribbon,
+.entrance__band,
+.entrance__pillar,
+.entrance__target,
+.entrance__ring,
+.entrance__debris,
+.entrance__after,
+.entrance__shine {
+  animation-duration: var(--entrance-duration);
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
+}
+
+/* ---- 背景：後光・遠くの山・雲・雲海 ---- */
+.entrance__rays,
+.entrance__rays2 {
+  position: absolute;
+  left: -800px;
+  top: -840px;
+  width: 2400px;
+  height: 2400px;
+}
+.entrance__rays {
+  background: repeating-conic-gradient(from 0deg, rgb(255 255 255 / 0.32) 0deg 8deg, transparent 8deg 20deg);
+  animation: ss-spin 40s linear infinite;
+}
+.entrance__rays2 {
+  background: repeating-conic-gradient(
+    from 10deg,
+    color-mix(in srgb, var(--player) 20%, transparent) 0deg 6deg,
+    transparent 6deg 20deg
+  );
+  animation:
+    ss-spin 40s linear infinite reverse,
+    entrance-ray-in var(--entrance-duration) linear both;
+}
+.entrance__far {
+  position: absolute;
+  inset: 0;
+  width: 1280px;
+  height: 720px;
+  fill: var(--ss-mountain-far);
+}
+.entrance__cloud {
+  position: absolute;
+  left: -300px;
+  animation: entrance-drift 30s linear infinite;
+}
+.entrance__cloud--high {
+  top: 80px;
+  width: 200px;
+  height: 100px;
+  animation-delay: -8s;
+}
+.entrance__cloud--low {
+  top: 250px;
+  width: 150px;
+  height: 75px;
+  animation-duration: 24s;
+  animation-delay: -17s;
+}
+.entrance__sea {
+  position: absolute;
+  left: 0;
+  top: 610px;
+  width: 1280px;
+  height: 200px;
+  fill: var(--ss-cloud);
+  stroke: var(--ss-ink);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+.entrance__shake {
+  position: absolute;
+  inset: 0;
+  animation-name: entrance-shake;
+  animation-timing-function: linear;
+}
+.entrance__fade {
+  position: absolute;
+  inset: 0;
+  animation-name: entrance-fade;
+  animation-timing-function: linear;
+}
+
+/* ---- 右半分：プレイヤー色のしましま帯 ---- */
+.entrance__band {
+  position: absolute;
+  left: 660px;
+  top: -60px;
+  width: 780px;
+  height: 840px;
+  animation-name: entrance-band-in;
+  animation-timing-function: cubic-bezier(0.3, 0.9, 0.4, 1);
+}
+.entrance__stripes {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-left: 12px solid var(--ss-ink);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--entrance-stripe) 0 40px,
+    var(--entrance-stripe-light) 40px 80px
+  );
+  transform: skewX(-10deg);
+  animation: entrance-stripes 1.2s linear infinite;
+}
+
+/* ---- 落ちてくる前：光の柱・着地マーク ---- */
+.entrance__pillar {
+  position: absolute;
+  left: 152px;
+  top: -20px;
+  width: 360px;
+  height: 560px;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0),
+    rgb(255 255 255 / 0.85) 35%,
+    var(--ss-cloud) 50%,
+    rgb(255 255 255 / 0.85) 65%,
+    rgb(255 255 255 / 0)
+  );
+  animation-name: entrance-pillar;
+  animation-timing-function: ease-out;
+}
+.entrance__lines {
+  position: absolute;
+  left: 122px;
+  top: 0;
+  width: 420px;
+  height: 520px;
+  opacity: 0;
+  background: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.9) 0 5px, transparent 5px 38px);
+  animation-name: entrance-lines;
+  animation-timing-function: linear;
+}
+.entrance__isle {
+  position: absolute;
+  left: 72px;
+  top: 400px;
+  width: 520px;
+  height: 338px;
+}
+.entrance__target {
+  position: absolute;
+  left: 212px;
+  top: 498px;
+  width: 240px;
+  height: 64px;
+  box-sizing: border-box;
+  border: 6px dashed var(--player);
+  border-radius: 50%;
+  opacity: 0;
+  animation-name: entrance-target;
+  animation-timing-function: ease-in-out;
+}
+
+/* ---- 着地：衝撃の輪・けむり・星 ---- */
+.entrance__ring {
+  position: absolute;
+  left: 72px;
+  top: 450px;
+  width: 520px;
+  height: 160px;
+  box-sizing: border-box;
+  border: 9px solid var(--ss-cloud);
+  border-radius: 50%;
+  opacity: 0;
+  animation-timing-function: ease-out;
+}
+.entrance__ring--white { animation-name: entrance-ring1; }
+.entrance__ring--player {
+  border-color: var(--player);
+  animation-name: entrance-ring2;
+}
+.entrance__puff {
+  position: absolute;
+  top: 490px;
+  width: 180px;
+  height: 90px;
+  opacity: 0;
+  animation-timing-function: ease-out;
+}
+.entrance__puff--left {
+  left: 40px;
+  animation-name: entrance-puff-left;
+}
+.entrance__puff--right {
+  left: 444px;
+  animation-name: entrance-puff-right;
+}
+.entrance__debris {
+  position: absolute;
+  left: 317px;
+  top: 515px;
+  opacity: 0;
+  stroke: var(--ss-ink);
+  stroke-width: 2.2;
+  animation-name: entrance-debris;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+}
+
+/* ---- コマ：落下 → ぐしゃっ → 目がパチッ ---- */
+.entrance__drop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 800px;
+  height: 720px;
+  animation-name: entrance-drop;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+}
+.entrance__squash {
+  position: absolute;
+  inset: 0;
+  animation-name: entrance-squash;
+  animation-timing-function: ease-out;
+}
+.entrance__hidden { visibility: hidden; }
+.entrance__eyes-shut {
+  opacity: 0;
+  animation-name: entrance-eye-shut;
+  animation-timing-function: linear;
+}
+.entrance__eyes-open {
+  transform-origin: var(--entrance-eyes-origin);
+  animation-name: entrance-eye-open;
+  animation-timing-function: ease-out;
+}
+
+.entrance__after {
+  position: absolute;
+  inset: 0;
+  animation-name: entrance-after;
+  animation-timing-function: linear;
+}
+.entrance__twinkle {
+  position: absolute;
+  stroke: var(--ss-ink);
+  stroke-width: 2.5;
+  animation: ss-twinkle 1.2s ease-in-out infinite;
+}
+
+/* ---- かけ声 ---- */
+.entrance__dosun,
+.entrance__pachi {
+  position: absolute;
+  border: 5px solid var(--ss-ink);
+  opacity: 0;
+  animation-timing-function: ease-out;
+}
+.entrance__dosun {
+  left: 420px;
+  top: 566px;
+  padding: 6px 16px;
+  background: var(--ss-cream);
+  border-radius: 14px;
+  font-size: 34px;
+  animation-name: entrance-dosun;
+}
+.entrance__pachi {
+  left: 440px;
+  top: 120px;
+  padding: 8px 18px;
+  background: var(--ss-sun);
+  border-radius: 18px;
+  box-shadow: 0 5px 0 var(--ss-ink);
+  font-size: 40px;
+  animation-name: entrance-pachi;
+}
+
+/* ---- 「1P とうじょう!」 ---- */
+.entrance__banner {
+  position: absolute;
+  left: 720px;
+  top: 48px;
+  width: 540px;
+  height: 170px;
+  animation-name: entrance-banner-in;
+  animation-timing-function: ease-out;
+}
+.entrance__banner-bg {
+  position: absolute;
+  inset: 0;
+  width: 540px;
+  height: 170px;
+  fill: var(--player);
+  stroke: var(--ss-ink);
+  stroke-width: 7;
+  stroke-linejoin: round;
+}
+.entrance__title {
+  position: absolute;
+  left: 34px;
+  top: 0;
+  height: 170px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-weight: 400;
+}
+.entrance__player {
+  font-size: 112px;
+  color: var(--ss-cloud);
+}
+.entrance__enter {
+  font-size: 44px;
+  color: var(--ss-sun);
+}
+
+/* ---- 能力バッジ ---- */
+.entrance__stats {
+  position: absolute;
+  left: 738px;
+  top: 270px;
+  display: flex;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.entrance__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 150px;
+  animation-name: entrance-badge;
+  animation-timing-function: ease-out;
+}
+.entrance__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 110px;
+  height: 110px;
+  box-sizing: border-box;
+  border: 8px solid var(--player);
+  border-radius: 50%;
+  background: var(--ss-cream);
+  box-shadow: 0 0 0 5px var(--ss-ink), 0 9px 0 5px var(--ss-ink);
+  color: var(--ss-ink);
+}
+.entrance__badge-icon {
+  width: 56px;
+  height: 56px;
+}
+/* reach.svg は線のアイコン。見本どおり少し太くする */
+.entrance__badge-icon svg { stroke-width: 2.8; }
+.entrance__stars {
+  width: 140px;
+  height: 28px;
+}
+.entrance__star {
+  fill: var(--ss-muted-bg);
+  stroke: var(--ss-muted);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.entrance__star--on {
+  fill: var(--ss-sun);
+  stroke: var(--ss-ink);
+  stroke-width: 2.2;
+}
+.entrance__stat-label { font-size: 20px; }
+
+/* ---- 「パワータイプ!」のリボン ---- */
+.entrance__ribbon-row {
+  position: absolute;
+  left: 720px;
+  top: 500px;
+  width: 540px;
+  display: flex;
+  justify-content: center;
+}
+.entrance__ribbon {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  padding: 18px 48px 22px;
+  background: var(--ss-sun);
+  border: 7px solid var(--ss-ink);
+  border-radius: 20px;
+  box-shadow: 0 9px 0 var(--ss-ink);
+  font-size: 54px;
+  white-space: nowrap;
+  transform: rotate(-4deg);
+  animation-name: entrance-ribbon;
+  animation-timing-function: ease-out;
+}
+.entrance__shine {
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  left: -120px;
+  width: 70px;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0), rgb(255 255 255 / 0.9), rgb(255 255 255 / 0));
+  transform: translateX(640px) skewX(-20deg);
+  animation-name: entrance-shine;
+  animation-timing-function: ease-in-out;
+}
+
+.entrance__flash {
+  position: absolute;
+  inset: 0;
+  background: var(--ss-cloud);
+  opacity: 0;
+  pointer-events: none;
+  animation-name: entrance-flash;
+  animation-timing-function: linear;
+}
+
+/* ---- keyframes（見本と同じ。1回だけ流す） ---- */
+@keyframes entrance-drift { from { transform: translateX(0); } to { transform: translateX(1700px); } }
+@keyframes entrance-stripes { to { background-position: 113px 0; } }
+@keyframes entrance-ray-in { 0%, 18% { opacity: 0; } 22%, 93% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes entrance-fade { 0%, 93% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes entrance-drop { 0% { transform: translateY(-660px); } 17%, 100% { transform: translateY(0); } }
+@keyframes entrance-squash {
+  0%, 16% { transform: scale(0.9, 1.18); }
+  19% { transform: scale(1.28, 0.7); }
+  22% { transform: scale(0.92, 1.1); }
+  25%, 100% { transform: scale(1, 1); }
+}
+@keyframes entrance-lines { 0%, 16% { opacity: 1; } 19%, 100% { opacity: 0; } }
+@keyframes entrance-eye-shut { 0%, 29% { opacity: 1; } 30%, 100% { opacity: 0; } }
+@keyframes entrance-eye-open {
+  0%, 29% { opacity: 0; transform: scaleY(0.1); }
+  32% { opacity: 1; transform: scaleY(1.3); }
+  34%, 70% { opacity: 1; transform: scaleY(1); }
+  71% { transform: scaleY(0.1); }
+  72.5%, 100% { opacity: 1; transform: scaleY(1); }
+}
+@keyframes entrance-puff-left {
+  0%, 18% { transform: translate(0, 0) scale(0); opacity: 0; }
+  20% { transform: translate(0, 0) scale(1); opacity: 1; }
+  34%, 100% { transform: translate(-90px, -14px) scale(1.3); opacity: 0; }
+}
+@keyframes entrance-puff-right {
+  0%, 18% { transform: translate(0, 0) scale(0); opacity: 0; }
+  20% { transform: translate(0, 0) scale(1); opacity: 1; }
+  34%, 100% { transform: translate(90px, -14px) scale(1.3); opacity: 0; }
+}
+@keyframes entrance-flash { 0%, 18% { opacity: 0; } 19.5% { opacity: 0.9; } 26%, 100% { opacity: 0; } }
+@keyframes entrance-shake {
+  0%, 18% { transform: translate(0, 0); }
+  19% { transform: translate(-12px, 8px); }
+  20% { transform: translate(10px, -6px); }
+  21% { transform: translate(-7px, 4px); }
+  22% { transform: translate(4px, -2px); }
+  23%, 100% { transform: translate(0, 0); }
+}
+@keyframes entrance-dosun {
+  0%, 18% { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+  20% { opacity: 1; transform: scale(1.15) rotate(-8deg); }
+  22%, 27% { opacity: 1; transform: scale(1) rotate(-8deg); }
+  30%, 100% { opacity: 0; transform: scale(1) rotate(-8deg); }
+}
+@keyframes entrance-pachi {
+  0%, 29% { opacity: 0; transform: scale(0.3) rotate(8deg); }
+  32% { opacity: 1; transform: scale(1.15) rotate(8deg); }
+  35%, 48% { opacity: 1; transform: scale(1) rotate(8deg); }
+  52%, 100% { opacity: 0; transform: scale(1) rotate(8deg); }
+}
+@keyframes entrance-banner-in {
+  0%, 26% { transform: translateX(130%); }
+  31% { transform: translateX(-3%); }
+  33%, 100% { transform: translateX(0); }
+}
+@keyframes entrance-badge {
+  0%, 34% { transform: scale(0) rotate(-20deg); }
+  38% { transform: scale(1.15) rotate(6deg); }
+  40%, 100% { transform: scale(1) rotate(0); }
+}
+@keyframes entrance-ribbon {
+  0%, 48% { transform: scale(2.6) rotate(-4deg); opacity: 0; }
+  52% { transform: scale(0.92) rotate(-4deg); opacity: 1; }
+  54%, 100% { transform: scale(1) rotate(-4deg); opacity: 1; }
+}
+@keyframes entrance-band-in {
+  0%, 22% { transform: translateX(820px); }
+  27% { transform: translateX(-24px); }
+  29%, 100% { transform: translateX(0); }
+}
+@keyframes entrance-pillar {
+  0% { opacity: 0; transform: scaleX(0.2); }
+  4% { opacity: 0.9; transform: scaleX(1); }
+  17% { opacity: 0.9; transform: scaleX(1); }
+  23%, 100% { opacity: 0; transform: scaleX(1.8); }
+}
+@keyframes entrance-target {
+  0% { opacity: 0; transform: scale(1.5); }
+  3% { opacity: 1; transform: scale(1); }
+  8% { transform: scale(1.14); }
+  12% { transform: scale(1); }
+  16% { opacity: 1; transform: scale(1.14); }
+  19%, 100% { opacity: 0; transform: scale(1); }
+}
+@keyframes entrance-ring1 {
+  0%, 18.5% { transform: scale(0.15); opacity: 0; }
+  19.5% { transform: scale(0.25); opacity: 1; }
+  30%, 100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes entrance-ring2 {
+  0%, 20.5% { transform: scale(0.15); opacity: 0; }
+  21.5% { transform: scale(0.25); opacity: 1; }
+  33%, 100% { transform: scale(1.25); opacity: 0; }
+}
+@keyframes entrance-debris {
+  0%, 18.5% { transform: translate(0, 0) scale(0) rotate(0); opacity: 0; }
+  19.5% { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
+  31% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(220deg); opacity: 1; }
+  36%, 100% { transform: translate(var(--dx), var(--dy)) scale(0) rotate(300deg); opacity: 0; }
+}
+@keyframes entrance-after { 0%, 31% { opacity: 0; } 34%, 100% { opacity: 1; } }
+@keyframes entrance-shine {
+  0%, 54% { transform: translateX(0) skewX(-20deg); }
+  64%, 100% { transform: translateX(640px) skewX(-20deg); }
+}

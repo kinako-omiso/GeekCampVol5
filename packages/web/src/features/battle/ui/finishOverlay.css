@@ -1,0 +1,371 @@
+/*
+ * 見本：docs/design/screens/pc-08-finish.html（座標は 1280×720 のステージ上の px）
+ * 見本は 3.85 秒でくり返すが、ここでは --finish-duration を1回だけ再生する。keyframes の % は見本と同じ。
+ * 衝撃の輪・星・暗転の中心は --hit-x / --hit-y（最後の一撃が当たった所）に合わせる。
+ * 上下の黒い帯は暗転ストップの間だけ出し、吹き出し（KO! など）が出るときに引っ込める（見本では最後まで出ている）。
+ * 動きを止めたとき（prefers-reduced-motion）は、文字だけが見えている状態になるようにしておく。
+ */
+
+/* 対戦の canvas と HUD の上に重ねる層。PC はプレイヤーが触らないので、クリックは下に通す */
+.finish {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 1回だけ流す動き */
+.finish__quake,
+.finish__impact,
+.finish__ring,
+.finish__hit-star,
+.finish__debris,
+.finish__kiran-star,
+.finish__kiran-text,
+.finish__poff,
+.finish__lines,
+.finish__burst,
+.finish__text,
+.finish__bar,
+.finish__flash {
+  animation-duration: var(--finish-duration);
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
+}
+
+.finish__quake {
+  position: absolute;
+  inset: 0;
+}
+/* 時間切れはゆらさない */
+.finish--ko .finish__quake,
+.finish--ringOut .finish__quake {
+  animation-name: finish-quake;
+  animation-timing-function: linear;
+}
+
+/* ---- 暗転ストップ：暗いオレンジ＋集中線。下の 3D のコマが見えるよう、一撃の所は明るく抜く ---- */
+.finish__impact {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation-name: finish-impact;
+  animation-timing-function: linear;
+}
+.finish__impact-glow,
+.finish__impact-rays {
+  position: absolute;
+  inset: 0;
+}
+.finish__impact-glow {
+  background: radial-gradient(
+    circle at var(--hit-x) var(--hit-y),
+    transparent 0,
+    color-mix(in srgb, var(--ss-sun) 35%, transparent) 90px,
+    color-mix(in srgb, var(--ss-sun-deep) 70%, transparent) 170px,
+    var(--ss-ink) 430px
+  );
+}
+.finish__impact-rays {
+  background: repeating-conic-gradient(
+    from 0deg at var(--hit-x) var(--hit-y),
+    rgb(255 255 255 / 0.85) 0deg 1.6deg,
+    transparent 1.6deg 10deg
+  );
+  -webkit-mask-image: radial-gradient(circle at var(--hit-x) var(--hit-y), transparent 0 110px, #000 220px);
+  mask-image: radial-gradient(circle at var(--hit-x) var(--hit-y), transparent 0 110px, #000 220px);
+}
+
+/* ---- 衝撃の輪・星・飛び散る星 ---- */
+.finish__ring {
+  position: absolute;
+  left: calc(var(--hit-x) - 180px);
+  top: calc(var(--hit-y) - 100px);
+  width: 360px;
+  height: 200px;
+  box-sizing: border-box;
+  border: 10px solid var(--ss-cloud);
+  border-radius: 50%;
+  opacity: 0;
+  animation-timing-function: ease-out;
+}
+.finish__ring--white { animation-name: finish-ring-white; }
+.finish__ring--sun {
+  border-color: var(--ss-sun);
+  animation-name: finish-ring-sun;
+}
+.finish__hit-star {
+  position: absolute;
+  left: calc(var(--hit-x) - 100px);
+  top: calc(var(--hit-y) - 110px);
+  width: 200px;
+  height: 200px;
+  opacity: 0;
+  animation-name: finish-hit-star;
+  animation-timing-function: ease-out;
+}
+.finish__hit-star-outer {
+  fill: var(--ss-cloud);
+  stroke: var(--ss-ink);
+  stroke-width: 8;
+  stroke-linejoin: round;
+}
+.finish__hit-star-inner { fill: var(--ss-sun); }
+.finish__debris {
+  position: absolute;
+  left: var(--hit-x);
+  top: var(--hit-y);
+  opacity: 0;
+  stroke: var(--ss-ink);
+  stroke-width: 2.2;
+  animation-name: finish-debris;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+}
+
+/* ---- KO：負けた側の空に「キラーン!」（2P は右上・1P は左上） ---- */
+/* 見本は top: 22px だが、対戦画面では上の帯と HUD に重なるので HUD の下に出す */
+.finish__kiran {
+  position: absolute;
+  left: 1045px;
+  top: 185px;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.finish__kiran--p1 { left: 55px; }
+.finish__kiran-star {
+  width: 90px;
+  height: 90px;
+  opacity: 0;
+  fill: var(--ss-sun-pale);
+  stroke: var(--ss-ink);
+  stroke-width: 2.5;
+  animation-name: finish-kiran;
+  animation-timing-function: ease-out;
+}
+.finish__kiran-text {
+  font-size: 30px;
+  color: var(--ss-cloud);
+  white-space: nowrap;
+  opacity: 0;
+  animation-name: finish-kiran-text;
+  animation-timing-function: ease-out;
+}
+
+/* ---- 場外：負けた側の下の雲に「ポフッ」（2P は右下・1P は左下） ---- */
+/* 見本は top: 600px だが、下の帯（656px〜）に隠れるので帯の上に出す */
+.finish__poff {
+  position: absolute;
+  left: 960px;
+  top: 520px;
+  width: 240px;
+  height: 120px;
+  opacity: 0;
+  animation-name: finish-poff;
+  animation-timing-function: ease-out;
+}
+.finish__poff--p1 { left: 80px; }
+.finish__poff-cloud {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.finish__poff-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 10px;
+  font-size: 34px;
+}
+
+/* ---- 集中線 ---- */
+.finish__lines {
+  position: absolute;
+  inset: 0;
+  animation-name: finish-lines;
+  animation-timing-function: linear;
+}
+.finish__lines-spin {
+  position: absolute;
+  left: -760px;
+  top: -1100px;
+  width: 2800px;
+  height: 2800px;
+  background: repeating-conic-gradient(from 0deg, rgb(255 255 255 / 0.75) 0deg 1.2deg, transparent 1.2deg 8deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 0 280px, #000 560px);
+  mask-image: radial-gradient(circle, transparent 0 280px, #000 560px);
+  animation: finish-jitter 0.22s linear infinite;
+}
+
+/* ---- 文字：KO! / おっこちた! / タイムアップ! ---- */
+.finish__title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 40px;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.finish__burst {
+  position: absolute;
+  animation-name: finish-burst-in;
+  animation-timing-function: ease-out;
+}
+.finish__burst-glow {
+  width: 640px;
+  height: 640px;
+  -webkit-mask-image: radial-gradient(circle, #000 0 40%, transparent 70%);
+  mask-image: radial-gradient(circle, #000 0 40%, transparent 70%);
+}
+.finish__burst-rays {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgb(255 255 255 / 0.6) 0deg 6deg, transparent 6deg 18deg);
+  animation: ss-spin 6s linear infinite;
+}
+.finish__burst-star {
+  width: 560px;
+  height: 360px;
+}
+.finish__burst-outer {
+  fill: var(--ss-sun);
+  stroke: var(--ss-ink);
+  stroke-width: 7;
+  stroke-linejoin: round;
+}
+.finish__burst-inner { fill: var(--ss-cloud); }
+.finish__text {
+  position: relative;
+  margin: 0;
+  color: var(--ss-cloud);
+  white-space: nowrap;
+  -webkit-text-stroke: 18px var(--ss-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 14px 0 var(--ss-ink);
+  transform: rotate(-6deg);
+  animation-name: finish-slam;
+  animation-timing-function: ease-out;
+}
+
+/* ---- 上下の黒い帯・フラッシュ。帯はふだん画面の外に置いておく ---- */
+.finish__bar {
+  position: absolute;
+  left: 0;
+  width: 1280px;
+  height: 64px;
+  background: var(--ss-ink);
+  animation-timing-function: ease-out;
+}
+.finish__bar--top {
+  top: 0;
+  transform: translateY(-100%);
+  animation-name: finish-bar-top;
+}
+.finish__bar--bottom {
+  bottom: 0;
+  transform: translateY(100%);
+  animation-name: finish-bar-bottom;
+}
+.finish__flash {
+  position: absolute;
+  inset: 0;
+  background: var(--ss-cloud);
+  opacity: 0;
+  animation-name: finish-flash;
+  animation-timing-function: ease-out;
+}
+
+/* ---- keyframes（見本と同じ。1回だけ流す） ---- */
+@keyframes finish-impact { 0% { opacity: 0; } 0.91%, 17.27% { opacity: 1; } 19.09%, 100% { opacity: 0; } }
+@keyframes finish-hit-star {
+  0% { transform: scale(0.3) rotate(0); opacity: 0; }
+  2.73% { transform: scale(1.25) rotate(8deg); opacity: 1; }
+  7.27% { transform: scale(1) rotate(0); }
+  17.27% { transform: scale(1.06) rotate(-4deg); opacity: 1; }
+  19.55%, 100% { transform: scale(1.7) rotate(0); opacity: 0; }
+}
+@keyframes finish-quake {
+  0%, 19% { transform: translate(0, 0); }
+  19.09% { transform: translate(-16px, 10px); }
+  20% { transform: translate(14px, -9px); }
+  20.91% { transform: translate(-10px, 7px); }
+  21.82% { transform: translate(8px, -5px); }
+  22.73% { transform: translate(-4px, 3px); }
+  23.64%, 100% { transform: translate(0, 0); }
+}
+@keyframes finish-jitter {
+  0% { transform: rotate(0) scale(1); }
+  50% { transform: rotate(1.6deg) scale(1.03); }
+  100% { transform: rotate(0) scale(1); }
+}
+@keyframes finish-lines { 0%, 18.18% { opacity: 0; } 20.91%, 93.64% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes finish-flash { 0%, 17.27% { opacity: 0; } 19.09% { opacity: 0.95; } 25.45%, 100% { opacity: 0; } }
+/* 吹き出しが入り始める 20% から入りきる 26.36% までに引っ込める */
+@keyframes finish-bar-top {
+  0% { transform: translateY(-100%); }
+  5.45%, 20% { transform: translateY(0); }
+  26.36%, 100% { transform: translateY(-100%); }
+}
+@keyframes finish-bar-bottom {
+  0% { transform: translateY(100%); }
+  5.45%, 20% { transform: translateY(0); }
+  26.36%, 100% { transform: translateY(100%); }
+}
+@keyframes finish-ring-white {
+  0%, 19% { transform: scale(0.1); opacity: 0; }
+  19.55% { transform: scale(0.2); opacity: 1; }
+  30.91%, 100% { transform: scale(1.7); opacity: 0; }
+}
+@keyframes finish-ring-sun {
+  0%, 20.36% { transform: scale(0.1); opacity: 0; }
+  20.91% { transform: scale(0.2); opacity: 1; }
+  33.64%, 100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes finish-debris {
+  0%, 19% { transform: translate(0, 0) scale(0) rotate(0); opacity: 0; }
+  19.55% { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
+  30.91% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(200deg); opacity: 1; }
+  36.36%, 100% { transform: translate(var(--dx), var(--dy)) scale(0) rotate(280deg); opacity: 0; }
+}
+@keyframes finish-burst-in {
+  0%, 20% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  26.36% { transform: scale(1.12) rotate(0); opacity: 1; }
+  30%, 93.64% { transform: scale(1) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(6deg); opacity: 0; }
+}
+@keyframes finish-slam {
+  0%, 20% { transform: scale(3) rotate(-6deg); opacity: 0; }
+  26.36% { transform: scale(0.88) rotate(-6deg); opacity: 1; }
+  29.09% { transform: scale(1.07) rotate(-6deg); }
+  31.82% { transform: scale(1) rotate(-6deg); }
+  32.73% { transform: translate(-10px, 6px) rotate(-6deg); }
+  33.64% { transform: translate(9px, -6px) rotate(-6deg); }
+  34.55% { transform: translate(-5px, 3px) rotate(-6deg); }
+  35.45%, 93.64% { transform: translate(0, 0) rotate(-6deg); opacity: 1; }
+  100% { transform: translate(0, 0) rotate(-6deg); opacity: 0; }
+}
+@keyframes finish-kiran {
+  0%, 63.64% { transform: scale(0) rotate(0); opacity: 0; }
+  69.09% { transform: scale(1.4) rotate(45deg); opacity: 1; }
+  74.55%, 87.27% { transform: scale(1) rotate(90deg); opacity: 1; }
+  93.64%, 100% { transform: scale(0) rotate(120deg); opacity: 0; }
+}
+@keyframes finish-kiran-text {
+  0%, 67.27% { opacity: 0; transform: translateY(8px); }
+  70.91%, 89.09% { opacity: 1; transform: translateY(0); }
+  93.64%, 100% { opacity: 0; }
+}
+@keyframes finish-poff {
+  0%, 63.64% { transform: scale(0); opacity: 0; }
+  68.18% { transform: scale(1.2); opacity: 1; }
+  80% { transform: scale(1); opacity: 1; }
+  89.09%, 100% { transform: scale(1.3); opacity: 0; }
+}

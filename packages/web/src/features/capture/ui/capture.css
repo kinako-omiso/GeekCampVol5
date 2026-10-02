@@ -1,0 +1,375 @@
+/* 見本：docs/design/screens/phone-02-scan.html */
+.capture { background: var(--ss-ink); color: var(--ss-ink); }
+
+.capture__layout {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(var(--u) * 232);
+}
+
+/* ---- 左：カメラ ---- */
+.capture__preview {
+  position: relative;
+  overflow: hidden;
+  background: var(--ss-ink);
+}
+.capture__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.capture__camera-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: calc(var(--u) * 28);
+}
+.capture__send-error {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--u) * 96);
+  z-index: 2;
+  transform: translateX(-50%);
+  padding: calc(var(--u) * 8) calc(var(--u) * 16);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-danger);
+  color: #fff;
+  white-space: nowrap;
+}
+.capture__guide {
+  position: absolute;
+  left: 18%;
+  right: 17%;
+  top: 18%;
+  bottom: 6%;
+  box-sizing: border-box;
+  border: calc(var(--u) * 6) dashed #fff;
+  border-radius: calc(var(--u) * 34);
+  animation: capture-guide 1.4s ease-in-out infinite;
+}
+.capture__tips {
+  position: absolute;
+  left: calc(var(--u) * 16);
+  top: calc(var(--u) * 14);
+  display: flex;
+  gap: calc(var(--u) * 8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.capture__tip {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 6);
+  padding: calc(var(--u) * 5) calc(var(--u) * 12) calc(var(--u) * 5) calc(var(--u) * 8);
+  background: var(--ss-cream);
+  border: calc(var(--u) * 4) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  font-size: calc(var(--u) * 17);
+}
+.capture__tip-icon { width: calc(var(--u) * 24); height: calc(var(--u) * 24); }
+
+/* 撮影中の向きと、範囲指定の案内 */
+.capture__pill {
+  position: absolute;
+  left: calc(var(--u) * 24);
+  bottom: calc(var(--u) * 22);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 10);
+  padding: calc(var(--u) * 8) calc(var(--u) * 20) calc(var(--u) * 8) calc(var(--u) * 14);
+  background: var(--ss-sun);
+  border: calc(var(--u) * 5) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  box-shadow: 0 calc(var(--u) * 5) 0 var(--ss-ink);
+  font-size: calc(var(--u) * 26);
+  pointer-events: none;
+}
+.capture__select ~ .capture__pill { top: calc(var(--u) * 22); bottom: auto; }
+.capture__pill-step {
+  padding: 0 calc(var(--u) * 10);
+  border-radius: var(--ss-radius-pill);
+  background: var(--ss-ink);
+  color: #fff;
+  font-size: calc(var(--u) * 22);
+}
+.capture__pill-icon { width: calc(var(--u) * 30); height: calc(var(--u) * 30); }
+
+/* ---- 範囲指定：正面の写真とタップの印 ---- */
+.capture__select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+.capture__marker circle { stroke: var(--ss-ink); }
+.capture__marker path { fill: none; stroke: #fff; stroke-linecap: round; }
+.capture__marker.is-add circle { fill: var(--player); }
+.capture__marker.is-remove circle { fill: var(--ss-ink); }
+.capture__marker.is-remove path { stroke: var(--ss-cream); }
+
+.capture__modes {
+  position: absolute;
+  left: calc(var(--u) * 24);
+  bottom: calc(var(--u) * 22);
+  display: flex;
+  gap: calc(var(--u) * 4);
+  padding: calc(var(--u) * 5);
+  background: var(--ss-cream);
+  border: calc(var(--u) * 5) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+}
+.capture__mode {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 6);
+  height: calc(var(--u) * 46);
+  padding: 0 calc(var(--u) * 18);
+  border: none;
+  border-radius: var(--ss-radius-pill);
+  background: transparent;
+  font-size: calc(var(--u) * 20);
+}
+.capture__mode.is-active.is-add { background: var(--player); color: #fff; }
+.capture__mode.is-active.is-remove { background: var(--ss-ink); color: #fff; }
+.capture__mode-icon { width: calc(var(--u) * 22); height: calc(var(--u) * 22); }
+.capture__mode-icon svg { stroke-width: 3.2; }
+
+/* ---- 右：プレイヤー色のパネル ---- */
+.capture__side {
+  box-sizing: border-box;
+  background: var(--player);
+  border-left: calc(var(--u) * 6) solid var(--ss-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 12);
+  padding: calc(var(--u) * 14) calc(var(--u) * 16);
+}
+.capture__player { font-size: calc(var(--u) * 40); color: #fff; }
+.capture__shutter {
+  position: relative;
+  width: calc(var(--u) * 150);
+  height: calc(var(--u) * 150);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--ss-cream);
+  border: calc(var(--u) * 7) solid var(--ss-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: capture-ring 1.3s ease-out infinite;
+}
+.capture__shutter:active { transform: scale(0.94); }
+.capture__shutter:disabled { opacity: 0.5; animation: none; cursor: default; }
+.capture__shutter-ring {
+  position: absolute;
+  inset: calc(var(--u) * 6);
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: calc(var(--u) * 10) solid var(--player);
+}
+.capture__shutter-icon { width: calc(var(--u) * 66); height: calc(var(--u) * 66); }
+.capture__shutter-icon svg { stroke-width: 2.2; }
+.capture__shutter-label { font-size: calc(var(--u) * 28); color: #fff; }
+
+/* 撮った向きの一覧。撮った写真はタップで撮り直せる */
+.capture__views {
+  display: flex;
+  gap: calc(var(--u) * 6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.capture__view {
+  position: relative;
+  width: calc(var(--u) * 42);
+  height: calc(var(--u) * 52);
+  box-sizing: border-box;
+  overflow: hidden;
+  border: calc(var(--u) * 3) solid var(--ss-ink);
+  border-radius: calc(var(--u) * 10);
+  background: color-mix(in srgb, var(--ss-cream) 45%, transparent);
+}
+.capture__view.is-current { outline: calc(var(--u) * 4) solid var(--ss-sun); }
+.capture__view:disabled { cursor: default; }
+.capture__view-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.capture__view-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--ss-ink);
+  color: #fff;
+  font-size: calc(var(--u) * 11);
+  text-align: center;
+}
+.capture__back {
+  width: calc(var(--u) * 190);
+  height: calc(var(--u) * 40);
+  box-sizing: border-box;
+  border: calc(var(--u) * 4) dashed rgb(255 255 255 / 0.85);
+  border-radius: calc(var(--u) * 20);
+  background: transparent;
+  color: #fff;
+  font-size: calc(var(--u) * 18);
+}
+
+/* 範囲指定のボタン */
+.capture__ok,
+.capture__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--u) * 190);
+  box-sizing: border-box;
+  border: calc(var(--u) * 6) solid var(--ss-ink);
+  border-radius: calc(var(--u) * 24);
+  box-shadow: 0 calc(var(--u) * 6) 0 var(--ss-ink);
+}
+.capture__ok {
+  flex-direction: column;
+  gap: calc(var(--u) * 4);
+  height: calc(var(--u) * 130);
+  background: var(--ss-sun);
+  font-size: calc(var(--u) * 44);
+  animation: capture-glow 1.2s ease-out infinite;
+}
+.capture__ok-icon { width: calc(var(--u) * 56); height: calc(var(--u) * 56); }
+.capture__ok-icon svg { stroke-width: 3.2; }
+.capture__action {
+  gap: calc(var(--u) * 8);
+  height: calc(var(--u) * 56);
+  background: var(--ss-cream);
+  font-size: calc(var(--u) * 22);
+}
+.capture__action-icon { width: calc(var(--u) * 28); height: calc(var(--u) * 28); }
+.capture__action-icon svg { stroke-width: 2.8; }
+.capture__ok:active,
+.capture__action:active { transform: translateY(calc(var(--u) * 6)); box-shadow: none; }
+.capture__ok:disabled,
+.capture__action:disabled { opacity: 0.5; animation: none; cursor: default; transform: none; }
+
+/* ---- 送信中 ---- */
+.capture__sending {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ss-ink) 88%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 22);
+  color: #fff;
+}
+.capture__sending-icon {
+  width: calc(var(--u) * 92);
+  height: calc(var(--u) * 92);
+  color: var(--ss-sun);
+  animation: capture-up 0.8s ease-in-out infinite;
+}
+.capture__sending-icon svg { stroke-width: 2.6; }
+.capture__sending-title { font-size: calc(var(--u) * 46); }
+.capture__sending-bar {
+  width: calc(var(--u) * 440);
+  height: calc(var(--u) * 30);
+  box-sizing: border-box;
+  border: calc(var(--u) * 5) solid var(--ss-cream);
+  border-radius: var(--ss-radius-pill);
+  overflow: hidden;
+}
+.capture__sending-fill {
+  height: 100%;
+  background: var(--ss-sun);
+  animation: capture-progress ease-in-out both;
+}
+.capture__sending-fill.is-live {
+  animation: none;
+  transition: width 120ms linear;
+}
+
+/* ---- 送信完了 ---- */
+.capture__sent {
+  height: 100%;
+  background: var(--player);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 40);
+  color: #fff;
+}
+.capture__sent-badge {
+  width: calc(var(--u) * 170);
+  height: calc(var(--u) * 170);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--ss-sun);
+  border: calc(var(--u) * 8) solid var(--ss-ink);
+  box-shadow: 0 calc(var(--u) * 10) 0 var(--ss-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ss-ink);
+  animation: ss-pop 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.capture__sent-check { width: calc(var(--u) * 108); height: calc(var(--u) * 108); }
+.capture__sent-check svg { stroke-width: 3.4; }
+.capture__sent-text { display: flex; flex-direction: column; gap: calc(var(--u) * 16); }
+.capture__sent-title { font-size: calc(var(--u) * 84); color: var(--ss-sun); }
+.capture__sent-sub {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 12);
+  font-size: calc(var(--u) * 32);
+}
+.capture__sent-monitor { width: calc(var(--u) * 46); height: calc(var(--u) * 46); }
+
+@keyframes capture-guide { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+@keyframes capture-ring {
+  0% { box-shadow: 0 calc(var(--u) * 8) 0 var(--ss-ink), 0 0 0 0 rgb(255 255 255 / 0.9); }
+  100% { box-shadow: 0 calc(var(--u) * 8) 0 var(--ss-ink), 0 0 0 calc(var(--u) * 20) rgb(255 255 255 / 0); }
+}
+@keyframes capture-glow {
+  0% { box-shadow: 0 calc(var(--u) * 6) 0 var(--ss-ink), 0 0 0 0 rgb(255 201 60 / 0.9); }
+  100% { box-shadow: 0 calc(var(--u) * 6) 0 var(--ss-ink), 0 0 0 calc(var(--u) * 18) rgb(255 201 60 / 0); }
+}
+@keyframes capture-up {
+  0% { transform: translateY(calc(var(--u) * 12)); opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { transform: translateY(calc(var(--u) * -12)); opacity: 0.3; }
+}
+@keyframes capture-progress { from { width: 0; } to { width: 100%; } }
+
+/* 本番の4枚撮影・対象指定・Mask確認。 */
+.capture-live { padding: calc(var(--u) * 10) calc(var(--u) * 18); box-sizing: border-box; color: white; display: flex; flex-direction: column; gap: calc(var(--u) * 6); }
+.capture-live__header { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: calc(var(--u) * 18); }
+.capture-live__header span { font-size: calc(var(--u) * 14); }
+.capture-live__error { margin: 0; padding: 4px 10px; background: var(--ss-danger); color: white; border-radius: 8px; font-size: calc(var(--u) * 14); }
+.capture-live button { border: 3px solid var(--ss-ink); border-radius: 12px; padding: calc(var(--u) * 8) calc(var(--u) * 14); background: var(--ss-cream); color: var(--ss-ink); font-weight: bold; font-size: calc(var(--u) * 16); }
+.capture-live button[aria-pressed="true"] { background: var(--ss-sun); }
+.capture-live button:disabled { opacity: 0.45; }
+.capture-live__camera { flex: 1; min-height: 0; display: flex; gap: 18px; }
+.capture-live__camera video { width: 70%; min-height: 0; object-fit: contain; }
+.capture-live__camera > div { align-self: center; display: flex; flex-direction: column; gap: 18px; }
+.capture-live__photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; min-height: 0; flex: 1; }
+.capture-live__photos button { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.capture-live__photos img { width: 100%; height: 80%; object-fit: contain; min-height: 0; }
+.capture-live__footer { display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 8); }
+.capture-live__footer span { flex: 1; font-size: calc(var(--u) * 13); }
+.capture-editor { flex: 1; min-height: 0; display: flex; gap: calc(var(--u) * 10); justify-content: center; }
+.capture-editor__tools { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+.capture-editor__image { min-height: 0; min-width: 0; flex: 1; display: flex; align-items: center; justify-content: center; }
+.capture-editor canvas { max-height: 100%; max-width: 100%; object-fit: contain; touch-action: none; }
+.capture-review__tabs { display: flex; gap: 8px; justify-content: center; }

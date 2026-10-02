@@ -1,0 +1,2 @@
+/* 検証用の共通表示は対戦部品のスタイルを使用する。 */
+@import '../../features/battle/ui/physicsBattleTest.css';

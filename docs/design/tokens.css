@@ -1,0 +1,116 @@
+/*
+ * Scannee's Summit デザイントークン(案2「そらの てっぺん」)
+ * 色・フォント・線・影はここの変数を使い、コンポーネントに直書きしない。
+ * TypeScript / Babylon.js からは tokens.ts を使う(値は同じ)。
+ */
+@import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap');
+
+:root {
+  /* プレイヤー色:リング・HPバー・スマホ背景・旗・枠に同じ色を使う */
+  --ss-p1: #2F6BFF;
+  --ss-p1-dark: #1B3FA8;   /* 大きい文字の影 */
+  --ss-p1-light: #9CC0FF;  /* 山・リングの光 */
+  --ss-p1-shade: #7DA5F5;  /* 山の影面 */
+  --ss-p2: #E8284F;
+  --ss-p2-dark: #9E1233;
+  --ss-p2-light: #FFA3B8;
+  --ss-p2-shade: #F4829D;
+
+  /* 世界 */
+  --ss-sky: #8FDBFF;          /* 背景の空 */
+  --ss-mountain-far: #79C9EF; /* 遠くの山 */
+  --ss-mountain-far-2: #62B8E4;
+  --ss-cloud: #FFFFFF;        /* 雲・雲海。のれない場所 */
+  --ss-cloud-shade: #E4F4FF;
+  --ss-grass: #6BD66B;        /* のれる場所 */
+  --ss-grass-light: #8BE68B;
+  --ss-grass-stripe: #7DDE7D;
+  --ss-rock: #C08F68;         /* 島の崖 */
+  --ss-rock-dark: #946848;
+  --ss-danger: rgba(232, 40, 79, .34); /* もうすぐ雲になる所のしましま */
+
+  /* おひさま:勝ち・大事なボタン・注意 */
+  --ss-sun: #FFC93C;
+  --ss-sun-deep: #FF9F1C;
+  --ss-sun-pale: #FFE27A;
+
+  /* 文字・面 */
+  --ss-ink: #231A3D;        /* 本文・すべてのふちどり */
+  --ss-ink-soft: #5A4F75;   /* 補足の文字 */
+  --ss-muted: #A39BB8;      /* 未選択・からの星 */
+  --ss-muted-bg: #E2DCEB;
+  --ss-cream: #FFF8EC;      /* カード・ボタン */
+  --ss-ice: #E9F7FF;        /* 薄い面 */
+
+  /* 文字 */
+  --ss-font-display: 'Mochiy Pop One', sans-serif;      /* 見出し・数字・かけ声 */
+  --ss-font-body: 'M PLUS Rounded 1c', sans-serif;      /* ボタン・説明(太さは 800/900) */
+
+  /* 線・角・影 */
+  --ss-line: 5px;        /* 標準のふちどり */
+  --ss-line-thick: 7px;  /* 大きいボタン */
+  --ss-radius-card: 28px;
+  --ss-radius-button: 36px;
+  --ss-radius-pill: 999px;
+  --ss-drop: 0 8px 0 var(--ss-ink);        /* ボタン・カードの落ち影 */
+  --ss-drop-pressed: 0 2px 0 var(--ss-ink);
+}
+
+/* ---- 文字 ---- */
+.ss-display { font-family: var(--ss-font-display); line-height: 1.05; }
+.ss-body { font-family: var(--ss-font-body); font-weight: 900; }
+
+/* ふちどり文字。-webkit-text-stroke は線の半分が外に出るので、見た目の太さの2倍を指定する */
+.ss-outline-l { -webkit-text-stroke: 14px var(--ss-ink); paint-order: stroke fill; }
+.ss-outline-m { -webkit-text-stroke: 10px var(--ss-ink); paint-order: stroke fill; }
+.ss-outline-s { -webkit-text-stroke: 6px var(--ss-ink); paint-order: stroke fill; }
+
+/* ---- 面 ---- */
+.ss-card {
+  box-sizing: border-box;
+  background: var(--ss-cream);
+  border: var(--ss-line) solid var(--ss-ink);
+  border-radius: var(--ss-radius-card);
+  box-shadow: var(--ss-drop);
+}
+.ss-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 20px 8px 14px;
+  background: var(--ss-cream);
+  border: var(--ss-line) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  box-shadow: 0 5px 0 var(--ss-ink);
+  font-family: var(--ss-font-body); font-weight: 900; color: var(--ss-ink);
+}
+
+/* ---- ボタン ---- */
+.ss-button {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  box-sizing: border-box; padding: 0;
+  border: var(--ss-line-thick) solid var(--ss-ink);
+  border-radius: var(--ss-radius-button);
+  box-shadow: var(--ss-drop);
+  font-family: var(--ss-font-body); font-weight: 900; color: var(--ss-ink);
+  cursor: pointer;
+  transition: transform .08s, box-shadow .08s;
+}
+.ss-button:active, .ss-button.is-pressed { transform: translateY(8px); box-shadow: var(--ss-drop-pressed); }
+.ss-button--primary { background: var(--ss-sun); }     /* けってい・OK・B */
+.ss-button--secondary { background: var(--ss-cream); } /* とりなおす・A */
+.ss-button--ghost { background: transparent; border: 4px dashed rgba(255,255,255,.85); box-shadow: none; color: #fff; } /* おてほん(プリセット) */
+
+/* ---- 動き(見本の keyframes と同じもの) ---- */
+@keyframes ss-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes ss-pop { 0% { transform: scale(0) rotate(-20deg); } 70% { transform: scale(1.12) rotate(4deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes ss-slam { 0% { transform: scale(2.6); opacity: 0; } 60% { transform: scale(.92); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes ss-pulse-ring { 0% { box-shadow: var(--ss-drop), 0 0 0 0 rgba(255,255,255,.9); } 100% { box-shadow: var(--ss-drop), 0 0 0 24px rgba(255,255,255,0); } }
+@keyframes ss-shake { 0%, 100% { transform: translate(0,0); } 20% { transform: translate(-12px,8px); } 40% { transform: translate(10px,-6px); } 60% { transform: translate(-7px,4px); } 80% { transform: translate(4px,-2px); } }
+@keyframes ss-flash { from { opacity: .9; } to { opacity: 0; } }
+@keyframes ss-twinkle { 0%, 100% { transform: scale(0) rotate(0); } 50% { transform: scale(1) rotate(90deg); } }
+@keyframes ss-wave { 0%, 100% { transform: skewY(0); } 50% { transform: skewY(-5deg); } }  /* 旗 */
+@keyframes ss-spin { to { transform: rotate(360deg); } }                               /* 後光・おひさま */
+@keyframes ss-blink-danger { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }         /* 縮小予告(まんなかへ にげて!) */
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-motion, .ss-motion * { animation: none !important; transition: none !important; }
+}

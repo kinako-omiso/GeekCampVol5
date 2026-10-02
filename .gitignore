@@ -1,0 +1,7 @@
+node_modules
+.env*
+!.env.example
+packages/web/dist
+
+# pnpmはローカル開発用。依存の固定はpackage-lock.jsonで管理
+/pnpm-lock.yaml

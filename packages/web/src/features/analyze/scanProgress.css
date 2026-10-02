@@ -1,0 +1,304 @@
+/* 見本：docs/design/screens/pc-02-scan-progress.html（座標は 1280×720 のステージ上の px） */
+.scan {
+  /* まるい窓の中の色。tokens.css に無いので見本の値をここだけで使う */
+  --scan-birth-bg: #DDF4FF;
+}
+
+/* ---- 背景（流れる雲は置かない。白い文字が読みにくくなるため） ---- */
+.scan__far {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1280px;
+  height: 720px;
+}
+.scan__far-1 { fill: var(--ss-mountain-far); }
+.scan__far-2 { fill: var(--ss-mountain-far-2); }
+
+.scan__sea {
+  position: absolute;
+  left: 0;
+  top: 600px;
+  width: 1280px;
+  height: 200px;
+  fill: var(--ss-cloud);
+  stroke: var(--ss-ink);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+/* ---- タイトル ---- */
+.scan__title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 34px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+.scan__title-text {
+  margin: 0;
+  font-size: 52px;
+  font-weight: 400;
+  color: var(--ss-cream);
+  -webkit-text-stroke: 12px var(--ss-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 6px 0 var(--ss-ink);
+  white-space: nowrap;
+  animation: scan-bob 2s ease-in-out infinite;
+}
+.scan__spark {
+  width: 40px;
+  height: 40px;
+  fill: var(--ss-sun);
+  stroke: var(--ss-ink);
+  stroke-width: 2.5;
+  animation: scan-twinkle 1.4s ease-in-out infinite;
+}
+.scan__spark--late { animation-delay: 0.6s; }
+
+/* ---- パネル（1P は左、2P は右） ---- */
+.scan__panel {
+  --player: var(--ss-p1);
+  position: absolute;
+  top: 124px;
+  width: 540px;
+  height: 470px;
+  box-sizing: border-box;
+  background: var(--ss-cream);
+  border: 6px solid var(--ss-ink);
+  border-radius: 36px;
+  box-shadow: 0 10px 0 var(--ss-ink);
+}
+.scan__panel--p1 { left: 70px; }
+.scan__panel--p2 { --player: var(--ss-p2); left: 670px; }
+
+.scan__tab {
+  position: absolute;
+  left: 24px;
+  top: -30px;
+  padding: 4px 24px 8px;
+  background: var(--player);
+  border: var(--ss-line) solid var(--ss-ink);
+  border-radius: 16px;
+  font-size: 40px;
+  color: #fff;
+}
+
+/* ---- まるい窓 ---- */
+.scan__birth {
+  position: absolute;
+  left: 134px;
+  top: 28px;
+  width: 260px;
+  height: 260px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 12px solid var(--player);
+  border-radius: 50%;
+  background: var(--scan-birth-bg);
+  box-shadow: 0 0 0 var(--ss-line) var(--ss-ink);
+}
+
+/* コマを置く箱（見本の 216×196） */
+.scan__figure {
+  position: absolute;
+  left: 10px;
+  top: 18px;
+  width: 216px;
+  height: 196px;
+}
+.scan__scannee { inset: 0; }
+
+.scan__outline {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 216px;
+  height: 196px;
+  fill: none;
+  stroke: var(--player);
+  stroke-width: 4;
+  stroke-dasharray: 10 6;
+  stroke-linejoin: round;
+}
+.scan__outline--waiting {
+  left: 10px;
+  top: 24px;
+  opacity: 0.5;
+}
+/* 点線が流れる */
+.scan__ants { animation: scan-ants 0.9s linear infinite; }
+
+/* 下から形が埋まる → 目がパチッ（見本と同じ 4.5 秒でくり返す） */
+.scan__reveal { animation: scan-reveal 4.5s linear infinite; }
+.scan__eyes-pop {
+  transform-origin: 50% 46%;
+  animation: scan-eyes-pop 4.5s ease-out infinite;
+}
+.scan__beam {
+  position: absolute;
+  left: -10px;
+  right: -10px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--ss-sun);
+  box-shadow: 0 0 16px 6px rgb(255 201 60 / 0.8);
+  animation: scan-beam 4.5s linear infinite;
+}
+
+.scan__pon {
+  position: absolute;
+  left: 360px;
+  top: 36px;
+  padding: 4px 12px;
+  background: var(--ss-sun);
+  border: 4px solid var(--ss-ink);
+  border-radius: 12px;
+  font-size: 24px;
+  animation: scan-pon 4.5s ease-out infinite;
+}
+
+/* 順番待ちの砂時計 */
+.scan__hourglass {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scan__hourglass-icon {
+  width: 104px;
+  height: 104px;
+  animation: scan-flip 2.4s ease-in-out infinite;
+}
+.scan__hourglass-icon svg {
+  fill: var(--ss-cream);
+  stroke: var(--ss-ink);
+  stroke-width: 2.2;
+}
+
+.scan__next {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 262px;
+  display: flex;
+  justify-content: center;
+}
+.scan__next-pill {
+  padding: 8px 22px;
+  background: var(--ss-sun);
+  border: var(--ss-line) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  box-shadow: 0 5px 0 var(--ss-ink);
+  font-size: 28px;
+  transform: rotate(-3deg);
+}
+
+/* ---- 山道（撮る → 送る → 解析 → 完成） ---- */
+.scan__trail {
+  position: absolute;
+  left: 24px;
+  top: 300px;
+  width: 480px;
+  height: 150px;
+  overflow: visible;
+}
+.scan__trail-ground { fill: #CDEFC6; }
+.scan__trail-ridge {
+  fill: none;
+  stroke: var(--ss-ink);
+  stroke-width: 4;
+}
+.scan__trail-path {
+  fill: none;
+  stroke: var(--ss-ink);
+  stroke-width: 4;
+  stroke-dasharray: 3 9;
+  stroke-linecap: round;
+}
+
+.scan__step-dot { stroke: var(--ss-ink); }
+.scan__step-icon {
+  fill: none;
+  stroke: var(--ss-ink);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* 終わった：プレイヤー色に白いアイコン */
+.scan__step.is-done .scan__step-dot { fill: var(--player); stroke-width: 5; }
+.scan__step.is-done .scan__step-icon { stroke: #fff; }
+/* いま：おひさま色で、まわりに輪が広がる */
+.scan__step.is-current .scan__step-dot { fill: var(--ss-sun); stroke-width: 5; }
+.scan__step-ring {
+  fill: none;
+  stroke: var(--ss-sun);
+  stroke-width: 5;
+  animation: scan-ring 1.2s ease-out infinite;
+}
+/* まだ：点線 */
+.scan__step.is-todo .scan__step-dot {
+  fill: var(--ss-cream);
+  stroke-width: 4;
+  stroke-dasharray: 7 5;
+}
+
+.scan__check circle {
+  fill: var(--ss-sun);
+  stroke: var(--ss-ink);
+  stroke-width: 3;
+}
+.scan__check path {
+  fill: none;
+  stroke: var(--ss-ink);
+  stroke-width: 2.33;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- 動き（見本と同じ） ---- */
+@keyframes scan-reveal {
+  0% { clip-path: inset(100% 0 0 0); }
+  75%, 100% { clip-path: inset(0 0 0 0); }
+}
+@keyframes scan-beam {
+  0% { top: 196px; opacity: 1; }
+  75% { top: 0; opacity: 1; }
+  76%, 100% { top: 0; opacity: 0; }
+}
+@keyframes scan-eyes-pop {
+  0%, 78% { opacity: 0; transform: scaleY(0.1); }
+  82% { opacity: 1; transform: scaleY(1.25); }
+  85%, 100% { opacity: 1; transform: scaleY(1); }
+}
+@keyframes scan-pon {
+  0%, 80% { opacity: 0; transform: scale(0.3) rotate(-10deg); }
+  84% { opacity: 1; transform: scale(1.15) rotate(-10deg); }
+  87%, 96% { opacity: 1; transform: scale(1) rotate(-10deg); }
+  100% { opacity: 0; transform: scale(1) rotate(-10deg); }
+}
+@keyframes scan-ants { to { stroke-dashoffset: -32; } }
+@keyframes scan-flip {
+  0%, 40% { transform: rotate(0); }
+  50%, 90% { transform: rotate(180deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes scan-ring {
+  0% { r: 26; opacity: 0.9; }
+  100% { r: 44; opacity: 0; }
+}
+@keyframes scan-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(-2deg); }
+}
+@keyframes scan-twinkle {
+  0%, 100% { transform: scale(0) rotate(0); }
+  50% { transform: scale(1) rotate(90deg); }
+}
+/* 本番の処理状況と撮り直し理由。 */
+.scan__panel { height: 550px; }
+.scan__status { position: absolute; top: 435px; left: 25px; right: 25px; margin: 0; text-align: center; font-size: 20px; }
+.scan__error { position: absolute; top: 470px; left: 25px; right: 25px; margin: 0; padding: 8px; background: var(--ss-cream); color: var(--ss-danger); border-radius: 12px; font-size: 16px; }

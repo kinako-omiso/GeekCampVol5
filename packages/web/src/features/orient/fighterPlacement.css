@@ -1,0 +1,14 @@
+.fighter-placement canvas { display: block; width: 100%; height: min(55vh, 500px); touch-action: none; }
+.fighter-placement__controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 20px 0; }
+.fighter-placement__controls label { display: flex; flex-direction: column; gap: 8px; }
+.fighter-placement__controls input { padding: 8px; }
+.fighter-placement__actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.fighter-placement__actions button { padding: 10px 16px; color: #fff; background: #187b67; border: 1px solid #58717a; border-radius: 8px; cursor: pointer; }
+.fighter-placement__actions button:disabled { opacity: .5; cursor: default; }
+.fighter-placement [role=alert] { color: #ff9c9c; }
+
+.fighter-placement__scale { margin-top: 20px; }
+.fighter-placement__scale p { margin: 8px 0; }
+.fighter-placement__scale-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.fighter-placement__scale-actions button { padding: 10px 16px; color: #fff; background: #187b67; border: 1px solid #58717a; border-radius: 8px; cursor: pointer; }
+.fighter-placement__scale-actions button:disabled { opacity: .5; cursor: default; }

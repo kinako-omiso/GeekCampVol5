@@ -1,0 +1,344 @@
+/*
+ * 見本：docs/design/screens/pc-09-timeup.html（座標は 1280×720 のステージ上の px）
+ * 見本は 7 秒でくり返すが、ここでは --time-up-duration を1回だけ再生し、最後の見た目のまま止める
+ * （引き分けはこの画面でスマホの選択を待つので、見本の最後のフェードアウトは入れない）。keyframes の % は見本と同じ。
+ * 動きを止めたとき（prefers-reduced-motion）に最後の見た目になるよう、ふだんのスタイルは「出きった状態」にしておく。
+ */
+.time-up__scene {
+  position: absolute;
+  inset: 0;
+}
+
+/* 1回だけ流す動き */
+.time-up__reveal,
+.time-up__mountain,
+.time-up__eyes-before,
+.time-up__eyes-after,
+.time-up__crown,
+.time-up__hp-value,
+.time-up__stamp,
+.time-up__caption,
+.time-up__draw,
+.time-up__title,
+.time-up__flash {
+  animation-duration: var(--time-up-duration);
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
+}
+
+/* ---- 背景：遠くの山・後光・勝った山の高さの点線 ---- */
+.time-up__far {
+  position: absolute;
+  inset: 0;
+  width: 1280px;
+  height: 720px;
+  fill: var(--ss-mountain-far);
+}
+.time-up__reveal {
+  position: absolute;
+  inset: 0;
+  animation-name: time-up-reveal;
+  animation-timing-function: linear;
+}
+.time-up__rays {
+  position: absolute;
+  left: -870px;
+  top: -963px;
+  width: 2400px;
+  height: 2400px;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--ss-sun) 40%, transparent) 0deg 7deg,
+    transparent 7deg 18deg
+  );
+  animation: ss-spin 24s linear infinite;
+}
+.time-up__line {
+  bottom: auto;
+  height: 0;
+  border-top: 6px dashed var(--ss-cloud);
+}
+
+/* ---- 雲から生える山（1P は左・2P は右） ---- */
+.time-up__mountain {
+  --player: var(--ss-p1);
+  position: absolute;
+  left: 70px;
+  width: 520px;
+  height: 560px;
+  animation-name: time-up-rise-left;
+  animation-timing-function: ease-out;
+}
+.time-up__mountain--p2 {
+  --player: var(--ss-p2);
+  left: 690px;
+  animation-name: time-up-rise-right;
+}
+.time-up__mountain-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.time-up__hidden { visibility: hidden; }
+.time-up__eyes-before {
+  opacity: 0;
+  animation-name: time-up-eyes-before;
+  animation-timing-function: linear;
+}
+.time-up__eyes-after {
+  animation-name: time-up-eyes-after;
+  animation-timing-function: linear;
+}
+.time-up__crown {
+  position: absolute;
+  width: 130px;
+  height: 100px;
+  transform: rotate(-10deg);
+  animation-name: time-up-crown;
+  animation-timing-function: ease-out;
+}
+
+/* てっぺんの横の 1P/2P と HP（低い山でも雲に隠れない） */
+.time-up__tag {
+  position: absolute;
+  left: -12px;
+  top: -20px;
+  width: 136px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.time-up__mountain--p2 .time-up__tag { left: 396px; }
+.time-up__label {
+  position: relative;
+  z-index: 1;
+  padding: 2px 16px 6px;
+  background: var(--player);
+  border: 4px solid var(--ss-ink);
+  border-radius: 12px;
+  font-size: 30px;
+  color: var(--ss-cloud);
+}
+.time-up__hp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 136px;
+  height: 136px;
+  margin-top: -16px;
+  border: 6px solid var(--ss-ink);
+  border-radius: 50%;
+  background: var(--ss-cream);
+  box-shadow: 0 6px 0 var(--ss-ink);
+}
+.time-up__heart {
+  width: 34px;
+  height: 34px;
+  color: var(--ss-sun);
+}
+.time-up__heart path {
+  stroke: var(--ss-ink);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+.time-up__hp-value {
+  font-size: 56px;
+  animation-name: time-up-number;
+  animation-timing-function: ease-out;
+}
+
+/* ---- 手前の雲海 ---- */
+.time-up__sea {
+  position: absolute;
+  left: 0;
+  top: 548px;
+  width: 1280px;
+  height: 200px;
+}
+.time-up__sea-cloud {
+  fill: var(--ss-cloud);
+  stroke: var(--ss-ink);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+.time-up__sea-shade { fill: var(--ss-cloud-shade); }
+
+/* ---- 「かち!」・「たかい ほうが かち!」・「ひきわけ!」 ---- */
+.time-up__stamp {
+  position: absolute;
+  left: 440px;
+  padding: 12px 24px;
+  background: var(--ss-sun);
+  border: 6px solid var(--ss-ink);
+  border-radius: 18px;
+  box-shadow: 0 7px 0 var(--ss-ink);
+  font-size: 50px;
+  transform: rotate(-10deg);
+  animation-name: time-up-stamp;
+  animation-timing-function: ease-out;
+}
+.time-up__stamp--p2 { left: 630px; }
+
+.time-up__caption-row,
+.time-up__draw-row,
+.time-up__next-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+}
+.time-up__caption-row { top: 122px; }
+.time-up__caption {
+  padding: 8px 24px;
+  background: var(--ss-cream);
+  border: var(--ss-line) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  box-shadow: 0 5px 0 var(--ss-ink);
+  font-size: 28px;
+  animation-name: time-up-caption;
+  animation-timing-function: ease-out;
+}
+.time-up__draw-row {
+  top: 110px;
+  z-index: 2;
+}
+.time-up__draw {
+  padding: 12px 44px 16px;
+  background: var(--ss-sun);
+  border: 7px solid var(--ss-ink);
+  border-radius: 22px;
+  box-shadow: 0 9px 0 var(--ss-ink);
+  font-size: 62px;
+  white-space: nowrap;
+  transform: rotate(-3deg);
+  animation-name: time-up-draw;
+  animation-timing-function: ease-out;
+}
+.time-up__next-row {
+  top: 600px;
+  bottom: auto;
+}
+.time-up__next {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 22px;
+  background: var(--ss-cream);
+  border: var(--ss-line) solid var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  font-size: 22px;
+}
+.time-up__next-icon {
+  width: 30px;
+  height: 30px;
+}
+.time-up__next-icon svg { stroke-width: 2.6; }
+
+/* ---- 「タイムアップ!」。真ん中でドンと出て、上へ小さくなる ---- */
+.time-up__title-row {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.time-up__title {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transform: translate(0, -292px) scale(0.48);
+  animation-name: time-up-title;
+  animation-timing-function: ease-out;
+}
+.time-up__sun {
+  position: relative;
+  flex-shrink: 0;
+  width: 150px;
+  height: 150px;
+  animation: time-up-wobble 0.25s linear infinite;
+}
+.time-up__sun-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.time-up__sun-seconds {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 4px;
+  font-size: 62px;
+}
+.time-up__title-text {
+  font-size: 118px;
+  color: var(--ss-sun);
+  white-space: nowrap;
+  -webkit-text-stroke: 16px var(--ss-ink);
+  paint-order: stroke fill;
+  text-shadow: 0 10px 0 var(--ss-ink);
+}
+
+.time-up__flash {
+  position: absolute;
+  inset: 0;
+  background: var(--ss-cloud);
+  opacity: 0;
+  pointer-events: none;
+  animation-name: time-up-flash;
+  animation-timing-function: linear;
+}
+
+/* ---- keyframes（見本と同じ。最後のフェードアウトは入れない） ---- */
+@keyframes time-up-title {
+  0% { transform: translate(0, 0) scale(3); opacity: 0; }
+  3% { transform: translate(0, 0) scale(0.92); opacity: 1; }
+  5% { transform: translate(0, 0) scale(1.04); }
+  6% { transform: translate(0, 0) scale(1); }
+  7% { transform: translate(-12px, 6px) scale(1); }
+  8% { transform: translate(10px, -6px) scale(1); }
+  9% { transform: translate(-6px, 4px) scale(1); }
+  10%, 28% { transform: translate(0, 0) scale(1); }
+  34%, 100% { transform: translate(0, -292px) scale(0.48); opacity: 1; }
+}
+@keyframes time-up-wobble { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@keyframes time-up-flash { 0% { opacity: 0; } 2% { opacity: 0.9; } 8%, 100% { opacity: 0; } }
+@keyframes time-up-rise-left {
+  0%, 36% { transform: translateY(620px); }
+  44% { transform: translateY(-12px); }
+  46%, 100% { transform: translateY(0); }
+}
+@keyframes time-up-rise-right {
+  0%, 40% { transform: translateY(620px); }
+  48% { transform: translateY(-12px); }
+  50%, 100% { transform: translateY(0); }
+}
+@keyframes time-up-caption {
+  0%, 36% { opacity: 0; transform: translateY(10px); }
+  40%, 100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes time-up-eyes-before { 0%, 57% { opacity: 1; } 58%, 100% { opacity: 0; } }
+@keyframes time-up-eyes-after { 0%, 57% { opacity: 0; } 58%, 100% { opacity: 1; } }
+@keyframes time-up-reveal { 0%, 56% { opacity: 0; } 60%, 100% { opacity: 1; } }
+@keyframes time-up-crown {
+  0%, 56% { transform: translateY(-220px) rotate(-10deg); opacity: 0; }
+  60% { transform: translateY(10px) rotate(-10deg); opacity: 1; }
+  62%, 100% { transform: translateY(0) rotate(-10deg); opacity: 1; }
+}
+@keyframes time-up-stamp {
+  0%, 58% { transform: scale(2.6) rotate(-10deg); opacity: 0; }
+  62% { transform: scale(0.9) rotate(-10deg); opacity: 1; }
+  64%, 100% { transform: scale(1) rotate(-10deg); opacity: 1; }
+}
+@keyframes time-up-draw {
+  0%, 56% { transform: scaleX(0) rotate(-3deg); }
+  60% { transform: scaleX(1.06) rotate(-3deg); }
+  62%, 100% { transform: scaleX(1) rotate(-3deg); }
+}
+@keyframes time-up-number { 0%, 44% { transform: scale(0); } 48% { transform: scale(1.2); } 50%, 100% { transform: scale(1); } }

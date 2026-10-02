@@ -1,0 +1,121 @@
+/* 見本：docs/design/screens/phone-04-battle.html */
+.pad {
+  display: flex;
+  flex-direction: column;
+}
+.pad__cloud { left: calc(var(--u) * 560); top: calc(var(--u) * -50); width: calc(var(--u) * 260); }
+
+/* ---- 上の帯 ---- */
+.pad__bar {
+  position: relative;
+  flex-shrink: 0;
+  height: calc(var(--u) * 58);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 14);
+  padding: 0 calc(var(--u) * 20);
+  box-sizing: border-box;
+}
+.pad__player {
+  padding: calc(var(--u) * 4) calc(var(--u) * 14) calc(var(--u) * 6);
+  border-radius: calc(var(--u) * 12);
+  background: var(--ss-cream);
+  color: var(--player);
+  border: calc(var(--u) * 4) solid var(--ss-ink);
+  font-size: calc(var(--u) * 26);
+}
+.pad__tilt-icon { width: calc(var(--u) * 30); height: calc(var(--u) * 30); }
+.pad__bar-text { font-size: calc(var(--u) * 19); }
+.pad__signal { margin-left: auto; width: calc(var(--u) * 26); height: calc(var(--u) * 26); }
+.pad__signal svg { stroke-width: 2.8; }
+.pad__signal.is-disconnected { opacity: .3; filter: grayscale(1); }
+
+/* ---- A / B ---- */
+.pad__buttons {
+  flex-grow: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--u) * 16);
+  padding: calc(var(--u) * 4) calc(var(--u) * 16) calc(var(--u) * 20);
+}
+.pad__button {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 2);
+  box-sizing: border-box;
+  border: calc(var(--u) * 7) solid var(--ss-ink);
+  border-radius: var(--ss-radius-button);
+  box-shadow: 0 calc(var(--u) * 10) 0 var(--ss-ink);
+  touch-action: none;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.pad__button.is-pressed {
+  transform: translateY(calc(var(--u) * 8));
+  box-shadow: 0 calc(var(--u) * 2) 0 var(--ss-ink);
+}
+.pad__button--a { background: var(--ss-cream); }
+.pad__button--b { background: var(--ss-sun); }
+.pad__letter {
+  position: relative;
+  font-size: calc(var(--u) * 150);
+  -webkit-text-stroke: calc(var(--u) * 14) var(--ss-ink);
+  paint-order: stroke fill;
+}
+.pad__letter--a { color: var(--player); }
+.pad__letter--b { color: #fff; }
+.pad__sub {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 8);
+  font-size: calc(var(--u) * 30);
+}
+.pad__sub-icon { width: calc(var(--u) * 34); height: calc(var(--u) * 34); }
+.pad__sub-icon--big { width: calc(var(--u) * 40); }
+.pad__sub-icon svg { stroke-width: 3.2; }
+.pad__burst {
+  position: absolute;
+  width: calc(var(--u) * 330);
+  height: calc(var(--u) * 330);
+  fill: var(--ss-sun-pale);
+  animation: ss-spin 12s linear infinite;
+}
+
+/* B のクールダウン：残りを暗い扇形と秒数で見せる（--cooldown は 1→0） */
+.pad__cooldown {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(
+    color-mix(in srgb, var(--ss-ink) 72%, transparent) 0deg calc(var(--cooldown) * 360deg),
+    transparent calc(var(--cooldown) * 360deg) 360deg
+  );
+}
+.pad__cooldown-count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--u) * 110);
+  color: #fff;
+  -webkit-text-stroke: calc(var(--u) * 14) var(--ss-ink);
+  paint-order: stroke fill;
+}
+/* 使えるようになったら内側がピカッと光る */
+.pad__ready {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: pad-ready 0.6s ease-out both;
+}
+
+@keyframes pad-ready {
+  0% { box-shadow: inset 0 0 0 0 rgb(255 255 255 / 0.95); }
+  100% { box-shadow: inset 0 0 0 calc(var(--u) * 44) rgb(255 255 255 / 0); }
+}

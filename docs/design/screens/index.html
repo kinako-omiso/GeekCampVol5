@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>画面一覧 — Scannee's Summit デザイン見本</title>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&amp;family=M+PLUS+Rounded+1c:wght@500;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:40px;background:#8FDBFF;font-family:'M PLUS Rounded 1c',sans-serif;color:#231A3D}
+h1{font-family:'Mochiy Pop One',sans-serif;font-size:40px;margin:0 0 6px}
+.lead{font-weight:800;margin:0 0 24px}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:14px;max-width:960px}
+li{background:#FFF8EC;border:4px solid #231A3D;border-radius:20px;padding:14px 20px;box-shadow:0 6px 0 #231A3D}
+li a{color:#231A3D;font-size:20px;text-decoration:none}
+li a:hover{text-decoration:underline}
+li span{font-weight:800;color:#5A4F75;margin-left:8px}
+li p{margin:6px 0 0;font-weight:800;line-height:1.7;color:#4A4163}
+</style>
+</head>
+<body>
+<h1>Scannee's Summit 画面一覧(案2)</h1>
+<p class="lead">ゲームの流れの順。各ページは開くとアニメーション付きで表示されます。切り替えのある画面は全パターンを縦に並べています。</p>
+<ol>
+<li><a href="pc-01-lobby.html"><b>ロビー</b></a> <span>/host ・ 1280×720 ・ 1パターン</span><p>QRを2つ出して2人の接続を待つ。つながった側は QR に OK! のスタンプとチェック、待っている側は QR が脈打つ。真ん中はめざす「てっぺん」(金の旗が立つ山)。</p></li>
+<li><a href="pc-02-scan-progress.html"><b>スキャン進捗</b></a> <span>/host ・ 1280×720 ・ 1パターン</span><p>Scannee が「うまれる」演出。解析中は形が下から埋まり、最後に目がパチッと開く。直列処理の待ちは砂時計と「つぎは 2P!」。下の山道が 撮る→送る→解析→完成 の進捗。背景に流れる雲は置かない(白い文字が読みにくくなるため)。</p></li>
+<li><a href="pc-03-orient.html"><b>向き調整</b></a> <span>/host ・ 1280×720 ・ 1パターン</span><p>左右分割。目が向いている方が「まえ」、足元の三角も同じ向き。確定した側は旗が立って目がにっこり、「じゅんびOK!」。</p></li>
+<li><a href="pc-04-entrance.html"><b>登場演出(1人ずつ)</b></a> <span>/host ・ 1280×720 ・ 2パターン</span><p>光の柱と着地マーク → 空から落ちてきて島にドスン(衝撃の輪・星が飛び散る・画面ゆれ)→ 目がパチッ → 右からプレイヤー色のしましま帯と「1P とうじょう!」→ 能力バッジ → タイプのリボン(光が走る)。コマは帯より左の枠の真ん中。6秒ループの見本(本番は1回再生)。1P→2Pの順に流す。</p></li>
+<li><a href="pc-05-vs-countdown.html"><b>VS → 3・2・1・GO!</b></a> <span>/host ・ 1280×720 ・ 1パターン</span><p>両方の島が左右から入り、真ん中に VS。そのあと雲の中の 3・2・1、GO! で開始。7秒ループの見本。</p></li>
+<li><a href="pc-06-battle.html"><b>対戦</b></a> <span>/host ・ 1280×720 ・ 1パターン</span><p>HUDは上(左1P・中央おひさまタイマー・右2P)。のれる所は草、外は雲。縮小予告は、草のふちが赤いしましまで点滅+真ん中を指す矢印(≫)が内側へ動く+「まんなかへ にげて!」。命中は ドカッ! と被弾側の目が「&gt;&lt;」、白点滅、頭の上に星。PC の HUD には B のクールダウンは出さない(スマホで見せる)。</p></li>
+<li><a href="pc-07-pause.html"><b>切断・一時停止</b></a> <span>/host ・ 1280×720 ・ 1パターン</span><p>ゲームを止めて暗くし、2人とも寝顔(すやすや)。切れた側の再接続QRを出す。つながったら 3・2・1 で再開。</p></li>
+<li><a href="pc-08-finish.html"><b>決着</b></a> <span>/host ・ 1280×720 ・ 3パターン</span><p>最後の一撃の瞬間に約0.7秒の暗転ストップ(暗いオレンジ+集中線、コマだけ明るい)→ 白フラッシュ+画面ゆれ+衝撃の輪と星 → 文字がドン。KO は負けた側が空へ飛んで「キラーン!」、場外は山から落ちて雲に「ポフッ」、時間切れは暗転なしで止まる。3.85秒ループの見本。</p></li>
+<li><a href="pc-09-timeup.html"><b>時間切れ(山くらべ)</b></a> <span>/host ・ 1280×720 ・ 3パターン</span><p>タイムアップ → 残りHPの高さの山が雲から生えてくる →「たかい ほうが かち!」→ 勝った方に王冠と「かち!」。HPの数字と 1P/2P は山のてっぺんの横に出す(低い山でも雲に隠れない)。勝った山の高さに白い点線。引き分けは同じ高さで「ひきわけ!」。山は勝利画面と同じ、上が平らで広い形。</p></li>
+<li><a href="pc-10-win.html"><b>勝利・つぎの選択</b></a> <span>/host ・ 1280×720 ・ 2パターン</span><p>勝った Scannee が山のてっぺんで王冠・キラキラ目。うしろから長い旗が上がって先がキラッ。スポットライト2本・花火・紙ふぶき(星まじり)・「1P」のうしろで回る星形。負けた側は左下の小島で拍手(絵文字ふうのアイコン)。右に「つぎは どうする?」と各プレイヤーの選択状況(選ぶのはスマホ)。「の かち!」とカードの右端をそろえてある。</p></li>
+<li><a href="phone-01-connect.html"><b>スマホ: 接続</b></a> <span>/controller ・ 844×390 ・ 4パターン</span><p>「タッチ!」でモーション権限を要求(iOSの「許可」を押すよう案内)→ 水準器の泡が真ん中に来るまで静止(基準姿勢)→ OK!。</p></li>
+<li><a href="phone-02-scan.html"><b>スマホ: スキャン</b></a> <span>/controller ・ 844×390 ・ 7パターン</span><p>撮影(コツ3つと点線ガイド)→ ぬりぬり(Interactive Segmenter の scribble。ぬる/けす で追加・除外)→ 送信 → 送信完了。「おてほん」はプリセット選択(phone-06)へ。</p></li>
+<li><a href="phone-06-preset.html"><b>スマホ: おてほん(プリセット・新規)</b></a> <span>/controller ・ 844×390 ・ 4パターン</span><p>スキャンがうまくいかないとき、アプリに入っている「おてほん」から選ぶ(写真アプリの許可は不要)。6体をタッチで選ぶ → 右の「これに する!」→ きまり! PCを みてね!。左上の「もどる」でスキャンへ。</p></li>
+<li><a href="phone-03-orient.html"><b>スマホ: 向き調整</b></a> <span>/controller ・ 844×390 ・ 3パターン</span><p>傾けてコマを回す。目と三角の向きが「まえ」。右の大きな「けってい」で確定 → 相手待ち。</p></li>
+<li><a href="phone-04-battle.html"><b>スマホ: 対戦</b></a> <span>/controller ・ 844×390 ・ 5パターン</span><p>左右いっぱいの2ボタン。A=体当たり小(ちょん!)、B=体当たり中(ドーン!)。Bは3秒のクールダウンを暗い扇形と残り秒で見せ、使えるようになったら内側が光る。被弾フラッシュは振動できない端末(iPhone)向け。</p></li>
+<li><a href="phone-05-result.html"><b>スマホ: けっか(新規)</b></a> <span>/controller ・ 844×390 ・ 3パターン</span><p>仕様書にない新規画面。試合後に各自が「このまま もういっかい」か「あたらしく スキャン」をタップで選ぶ。選んだら相手待ち。</p></li>
+<li><a href="phone-07-scan-portrait.html"><b>スマホ: スキャン(縦持ち案)</b></a> <span>/controller ・ 390×844 ・ 5パターン</span><p>スキャンだけ縦持ちにする案。上に手順の丸、真ん中にカメラ、下にシャッター・とりなおす・おてほん。流れは横持ちと同じ。対戦は仕様どおり横持ちなので、スキャン後に「よこに してね」の案内が要る。</p></li>
+<li><a href="phone-08-preset-portrait.html"><b>スマホ: おてほん(縦持ち案)</b></a> <span>/controller ・ 390×844 ・ 4パターン</span><p>おてほん画面の縦持ち版。2列×3段、下に「これに する!」。</p></li>
+<li><a href="style.html"><b>スタイル</b></a> <span>- ・ 1280×1000 ・ 1パターン</span><p>色・文字・Scannee の目の表情・はでさ・ルールと見た目の対応・タイミング。</p></li>
+</ol>
+</body>
+</html>

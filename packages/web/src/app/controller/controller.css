@@ -1,0 +1,5 @@
+/* 本番スマホ画面の待機・状態表示・被弾フラッシュ。 */
+.controller-waiting { display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
+.controller-status { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 20; background: var(--ss-cream); color: var(--ss-ink); padding: 8px 16px; border: 3px solid var(--ss-ink); border-radius: 14px; }
+.controller-feedback { position: fixed; inset: 0; background: white; z-index: 30; pointer-events: none; animation: controller-hit 180ms ease-out forwards; }
+@keyframes controller-hit { from { opacity: 0.75; } to { opacity: 0; } }

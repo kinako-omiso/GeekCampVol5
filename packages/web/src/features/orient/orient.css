@@ -1,0 +1,171 @@
+/* 見本：docs/design/screens/phone-03-orient.html */
+.orient__cloud--left { left: calc(var(--u) * -70); top: calc(var(--u) * 270); width: calc(var(--u) * 300); }
+.orient__cloud--top { left: calc(var(--u) * 300); top: calc(var(--u) * -30); width: calc(var(--u) * 220); }
+
+.orient__layout {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding-right: calc(var(--u) * 24);
+}
+
+/* ---- 左：コマと島 ---- */
+.orient__left {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 4);
+}
+.orient__player {
+  position: absolute;
+  left: calc(var(--u) * 24);
+  top: calc(var(--u) * 16);
+  font-size: calc(var(--u) * 40);
+}
+/* コマ・島・矢印は 400×279 の箱の中で見本どおりに重ねる */
+.orient__scene {
+  position: relative;
+  width: calc(var(--u) * 400);
+  height: calc(var(--u) * 279);
+  margin-top: calc(var(--u) * 40);
+}
+.orient__isle {
+  position: absolute;
+  left: calc(var(--u) * 50);
+  top: calc(var(--u) * 84);
+  width: calc(var(--u) * 300);
+  height: calc(var(--u) * 195);
+}
+.orient__arrows {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--u) * 400);
+  height: calc(var(--u) * 167);
+}
+.orient__arrow-outline { stroke: var(--ss-ink); }
+.orient__arrow-fill { stroke: #fff; }
+.orient__piece {
+  position: absolute;
+  left: calc(var(--u) * 94);
+  top: calc(var(--u) * 6);
+  width: calc(var(--u) * 210);
+  height: calc(var(--u) * 191);
+  transform-origin: calc(var(--u) * 106) 50%;
+}
+/* モック：傾けで回す代わりに、左右に向きを変えるアニメーションを見せる */
+.orient__piece--turning { animation: orient-turn 3.6s ease-in-out infinite; }
+.orient__piece-body { width: 100%; height: 100%; }
+.orient__piece-eyes {
+  position: absolute;
+  left: calc(var(--u) * 47.7);
+  top: calc(var(--u) * 66.8);
+  width: calc(var(--u) * 76.4);
+  height: calc(var(--u) * 42);
+}
+.orient__piece-front {
+  position: absolute;
+  left: calc(var(--u) * 206);
+  top: calc(var(--u) * 130);
+  width: calc(var(--u) * 50);
+  height: calc(var(--u) * 42);
+  fill: var(--ss-sun);
+  stroke: var(--ss-ink);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+.orient__hint {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 10);
+  padding: calc(var(--u) * 6) calc(var(--u) * 20) calc(var(--u) * 6) calc(var(--u) * 12);
+  background: var(--ss-ink);
+  border-radius: var(--ss-radius-pill);
+  font-size: calc(var(--u) * 22);
+}
+.orient__hint-icon {
+  width: calc(var(--u) * 34);
+  height: calc(var(--u) * 34);
+  color: var(--ss-sun);
+  animation: orient-tilt 1.6s ease-in-out infinite;
+}
+
+/* ---- 右：けってい ---- */
+.orient__go {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 8);
+  width: calc(var(--u) * 320);
+  height: calc(var(--u) * 314);
+  box-sizing: border-box;
+  background: var(--ss-sun);
+  border: calc(var(--u) * 8) solid var(--ss-ink);
+  border-radius: calc(var(--u) * 44);
+  animation: orient-glow 1.3s ease-out infinite;
+}
+.orient__go:active { transform: translateY(calc(var(--u) * 8)); }
+.orient__go:disabled { animation: none; box-shadow: 0 calc(var(--u) * 12) 0 var(--ss-ink); cursor: default; }
+.orient__go-icon { width: calc(var(--u) * 118); height: calc(var(--u) * 118); }
+.orient__go-icon svg { stroke-width: 3.2; }
+.orient__go-label { font-size: calc(var(--u) * 54); }
+
+/* ---- 確定後（相手待ち） ---- */
+.orient__ready {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ss-ink) 72%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 28);
+}
+.orient__flag {
+  width: calc(var(--u) * 120);
+  height: calc(var(--u) * 170);
+  color: var(--ss-sun);
+  transform-origin: 15% 50%;
+  animation: ss-wave 1s ease-in-out infinite;
+}
+.orient__ready-text { display: flex; flex-direction: column; gap: calc(var(--u) * 18); }
+.orient__ready-title {
+  font-size: calc(var(--u) * 80);
+  color: var(--ss-sun);
+  white-space: nowrap;
+  animation: orient-slam 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.orient__ready-sub {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 14);
+  font-size: calc(var(--u) * 30);
+}
+.orient__dots { display: flex; gap: calc(var(--u) * 8); }
+.orient__dots span {
+  width: calc(var(--u) * 12);
+  height: calc(var(--u) * 12);
+  border-radius: 50%;
+  background: #fff;
+  animation: orient-blink 1.2s infinite;
+}
+.orient__dots span:nth-child(2) { animation-delay: 0.2s; }
+.orient__dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes orient-glow {
+  0% { box-shadow: 0 calc(var(--u) * 12) 0 var(--ss-ink), 0 0 0 0 rgb(255 255 255 / 0.9); }
+  100% { box-shadow: 0 calc(var(--u) * 12) 0 var(--ss-ink), 0 0 0 calc(var(--u) * 24) rgb(255 255 255 / 0); }
+}
+@keyframes orient-turn { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
+@keyframes orient-tilt { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
+@keyframes orient-slam {
+  0% { transform: scale(2.4) rotate(-6deg); opacity: 0; }
+  60% { transform: scale(0.93) rotate(-6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-6deg); opacity: 1; }
+}
+@keyframes orient-blink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
