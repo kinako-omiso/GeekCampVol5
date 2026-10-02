@@ -11,29 +11,11 @@ import mountainP2Url from '../../../../../docs/design/assets/mountain-p2.svg'
 import starEyesUrl from '../../../../../docs/design/assets/eyes/star.svg'
 import happyEyesUrl from '../../../../../docs/design/assets/eyes/happy.svg'
 import flagTallSvg from '../../../../../docs/design/assets/flag-tall.svg?raw'
-import againIcon from '../../../../../docs/design/assets/icons/again.svg?raw'
-import cameraIcon from '../../../../../docs/design/assets/icons/camera.svg?raw'
-import checkIcon from '../../../../../docs/design/assets/icons/check.svg?raw'
-import phoneIcon from '../../../../../docs/design/assets/icons/phone.svg?raw'
 import './result.css'
-
-/**
- * 再戦の選択。again：同じコマでもう一度 / rescan：スキャンからやり直す。
- * スマホの結果画面（features/rematch）と同じ値。スマホから届くようになったら packages/protocol/ の型に置き換える
- */
-export type RematchChoice = 'again' | 'rescan'
 
 type Props = {
   winner: PlayerId
   looks: Record<PlayerId, ScanneeLook>
-  // 各プレイヤーがスマホで選んだもの。まだ選んでいなければ null
-  choices: Record<PlayerId, RematchChoice | null>
-}
-
-// 選んだものの見せ方（スマホのボタンと同じアイコン）
-const CHOICES: Record<RematchChoice, { icon: string; label: string }> = {
-  again: { icon: againIcon, label: 'このまま!' },
-  rescan: { icon: cameraIcon, label: 'あたらしく!' },
 }
 
 const MOUNTAINS: Record<PlayerId, string> = { p1: mountainP1Url, p2: mountainP2Url }
@@ -134,10 +116,10 @@ const FIREWORK_INNER = [
 
 /**
  * PC：結果画面。勝った Scannee が山のてっぺんで王冠・キラキラ目、うしろに長い旗。
- * 負けた側は左下の小島で拍手。右下に「つぎは どうする?」と各プレイヤーの選択状況（選ぶのはスマホ）。
- * 見本：docs/design/screens/pc-10-win.html
+ * 負けた側は左下の小島で拍手。右下は「つぎは どうする?」（再戦の2択）を置く場所として空けてある。
+ * 見本：docs/design/screens/pc-10-win.html（「つぎは どうする?」のカードを除く）
  */
-export function ResultScreen({ winner, looks, choices }: Props) {
+export function ResultScreen({ winner, looks }: Props) {
   const loser: PlayerId = winner === 'p1' ? 'p2' : 'p1'
   const winnerLabel = players[winner].label
   const winnerSpot = place(looks[winner], WINNER)
@@ -274,54 +256,7 @@ export function ResultScreen({ winner, looks, choices }: Props) {
         <span className="ss-display result__wins">の かち!</span>
       </h1>
 
-      <NextCard choices={choices} />
-
       <div className="result__flash" aria-hidden="true" />
     </HostStage>
-  )
-}
-
-/** 右下の「つぎは どうする?」。「の かち!」とカードの右端をそろえてある */
-function NextCard({ choices }: { choices: Record<PlayerId, RematchChoice | null> }) {
-  return (
-    <section className="result__next" aria-labelledby="result-next-title">
-      <h2 id="result-next-title" className="ss-display result__next-title">
-        つぎは どうする?
-      </h2>
-      {/* 選ぶたびに読み上げる */}
-      <ul className="result__next-list" aria-live="polite">
-        {(['p1', 'p2'] as const).map((player) => {
-          const choice = choices[player]
-          return (
-            <li
-              key={player}
-              className={`result__choice result__choice--${player}${choice ? ' result__choice--decided' : ''}`}
-            >
-              <span className="ss-display ss-outline-s result__choice-player">{players[player].label}</span>
-              {choice ? (
-                <>
-                  <Svg markup={CHOICES[choice].icon} className="result__choice-icon" />
-                  <span className="result__choice-label">{CHOICES[choice].label}</span>
-                  <Svg markup={checkIcon} className="result__choice-check" label="きまった" />
-                </>
-              ) : (
-                <>
-                  <span className="result__choice-label result__choice-label--waiting">えらんでる</span>
-                  <span className="result__choice-dots" aria-hidden="true">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                </>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-      <p className="result__next-hint">
-        <Svg markup={phoneIcon} className="result__next-hint-icon" />
-        スマホで えらんでね
-      </p>
-    </section>
   )
 }
