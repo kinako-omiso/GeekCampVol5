@@ -12,7 +12,7 @@ import { BattleHud } from '../../features/battle/ui/BattleHud'
 import { FinishOverlay } from '../../features/battle/ui/FinishOverlay'
 import { EntranceScreen } from '../../features/entrance/EntranceScreen'
 import { LobbyScreen, type LobbyPlayerStatus } from '../../features/lobby/LobbyScreen'
-import { ResultScreen } from '../../features/result/ResultScreen'
+import { ResultScreen, type RematchChoice } from '../../features/result/ResultScreen'
 import { TimeUpScreen } from '../../features/timeup/TimeUpScreen'
 import { VersusScreen } from '../../features/versus/VersusScreen'
 import { HostPeerSession } from '../../lib/peer/hostPeerSession.ts'
@@ -64,6 +64,16 @@ const MOCK_FINISHES: { label: string; snapshot: BattleSnapshot }[] = [
   },
 ]
 
+// モック：結果画面でスマホの代わりに選ぶボタン
+const MOCK_REMATCH_CHOICES: { choice: RematchChoice; label: string }[] = [
+  { choice: 'again', label: 'このまま' },
+  { choice: 'rescan', label: 'あたらしく' },
+]
+// 再戦の選択がまだ無い状態
+const NO_REMATCH_CHOICES: Record<PlayerId, RematchChoice | null> = { p1: null, p2: null }
+// 2人がそろってから次へ進むまで（両方の ✓ を見せる時間。ミリ秒）
+const REMATCH_DELAY_MS = 1200
+
 // 送られてきた後（順番待ち・解析中・完成）だけコマの見た目がある
 function hasLook(status: ScanStatus) {
   return status === 'waiting' || status === 'analyzing' || status === 'done'
@@ -97,6 +107,25 @@ export function HostFlow() {
   const [outcome, setOutcome] = useState<BattleOutcome | null>(null)
   // 時間切れの山くらべに出す、決着したときの HP と勝者（null なら引き分け）
   const [timeUp, setTimeUp] = useState<{ hp: Record<PlayerId, number>; winner: PlayerId | null } | null>(null)
+  // 結果画面での再戦の選択（いまはモックのボタンで選ぶ。スマホとつなぐのは #35）
+  const [rematchChoices, setRematchChoices] = useState(NO_REMATCH_CHOICES)
+
+  // 2人が同じものを選んだら次へ。このまま → 登場演出から、あたらしく → スキャンの最初から（仕様書「再戦」）。
+  // 2人の選択が食い違ったときの扱いは未決（docs/design/README.md「仕様書との差分」4）なので、そのときは進めない
+  useEffect(() => {
+    const { p1, p2 } = rematchChoices
+    if (step !== 'result' || p1 === null || p1 !== p2) return
+    const timer = window.setTimeout(() => {
+      setRematchChoices(NO_REMATCH_CHOICES)
+      if (p1 === 'again') {
+        setStep('entrance')
+      } else {
+        setScanStep(0)
+        setStep('scan')
+      }
+    }, REMATCH_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [step, rematchChoices])
   const [controllerUrls, setControllerUrls] =
     useState<ControllerUrls | null>(null)
 
@@ -264,6 +293,7 @@ export function HostFlow() {
     setScanStep(0)
     setOutcome(null)
     setTimeUp(null)
+    setRematchChoices(NO_REMATCH_CHOICES)
     setStep('lobby')
   }
 
@@ -275,6 +305,7 @@ export function HostFlow() {
 
   const showResult = (player: PlayerId) => {
     setWinner(player)
+    setRematchChoices(NO_REMATCH_CHOICES)
     setStep('result')
   }
 
@@ -373,7 +404,7 @@ export function HostFlow() {
           onDone={timeUpWinner === null ? undefined : () => showResult(timeUpWinner)}
         />
       )}
-      {step === 'result' && <ResultScreen winner={winner} looks={MOCK_SCANNEES} />}
+      {step === 'result' && <ResultScreen winner={winner} looks={MOCK_SCANNEES} choices={rematchChoices} />}
 
       <div className="host-mock">
         {step === 'lobby' && (
@@ -408,6 +439,18 @@ export function HostFlow() {
               モック：{mock.label} ▶
             </button>
           ))}
+        {step === 'result' &&
+          (['p1', 'p2'] as const).flatMap((player) =>
+            MOCK_REMATCH_CHOICES.map((mock) => (
+              <button
+                key={`${player}-${mock.choice}`}
+                type="button"
+                onClick={() => setRematchChoices((current) => ({ ...current, [player]: mock.choice }))}
+              >
+                モック：{player === 'p1' ? '1P' : '2P'} {mock.label}
+              </button>
+            )),
+          )}
         {(step === 'result' || step === 'timeUp') && (
           <button type="button" onClick={restart}>
             モック：ロビーへ ▶
